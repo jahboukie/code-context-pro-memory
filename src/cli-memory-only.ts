@@ -174,7 +174,17 @@ program
   .option('-d, --deep', 'Perform deep pattern analysis')
   .action(async (options) => {
     try {
-      await requireLicense();
+      const license = await requireLicense();
+      
+      // SECURITY: Validate usage before operation
+      try {
+        const usageResult = await firebaseService.validateUsage('scan', license.email, license.id);
+        console.log(chalk.dim(`💡 Usage: ${usageResult.remaining}/${usageResult.limit} remaining (${usageResult.tier})`));
+      } catch (error) {
+        console.error(chalk.red('❌ Usage limit exceeded:'), error instanceof Error ? error.message : error);
+        console.log(chalk.yellow('\n🔥 Upgrade to get more operations: https://codecontextpro.com'));
+        process.exit(1);
+      }
       
       const memory = new MemoryEngine();
       const scanner = new ProjectScanner();
@@ -209,8 +219,18 @@ program
   .option('-c, --context <context>', 'Additional context')
   .action(async (content, options) => {
     try {
-      await requireLicense();
+      const license = await requireLicense();
       await licenseService.validateFeatureAccess('persistentMemory');
+      
+      // SECURITY: Validate usage before operation
+      try {
+        const usageResult = await firebaseService.validateUsage('remember', license.email, license.id);
+        console.log(chalk.dim(`💡 Usage: ${usageResult.remaining}/${usageResult.limit} remaining (${usageResult.tier})`));
+      } catch (error) {
+        console.error(chalk.red('❌ Usage limit exceeded:'), error instanceof Error ? error.message : error);
+        console.log(chalk.yellow('\n🔥 Upgrade to get more operations: https://codecontextpro.com'));
+        process.exit(1);
+      }
       
       const memory = new MemoryEngine();
       
@@ -243,7 +263,17 @@ program
   .option('-l, --limit <limit>', 'Limit number of results', '10')
   .action(async (query, options) => {
     try {
-      await requireLicense();
+      const license = await requireLicense();
+      
+      // SECURITY: Validate usage before operation
+      try {
+        const usageResult = await firebaseService.validateUsage('recall', license.email, license.id);
+        console.log(chalk.dim(`💡 Usage: ${usageResult.remaining}/${usageResult.limit} remaining (${usageResult.tier})`));
+      } catch (error) {
+        console.error(chalk.red('❌ Usage limit exceeded:'), error instanceof Error ? error.message : error);
+        console.log(chalk.yellow('\n🔥 Upgrade to get more operations: https://codecontextpro.com'));
+        process.exit(1);
+      }
       
       const memory = new MemoryEngine();
       const results = await memory.searchMemories(process.cwd(), query, {
@@ -308,7 +338,17 @@ program
   .option('-o, --output <file>', 'Output file path')
   .action(async (options) => {
     try {
-      await requireLicense();
+      const license = await requireLicense();
+      
+      // SECURITY: Validate usage before operation
+      try {
+        const usageResult = await firebaseService.validateUsage('export', license.email, license.id);
+        console.log(chalk.dim(`💡 Usage: ${usageResult.remaining}/${usageResult.limit} remaining (${usageResult.tier})`));
+      } catch (error) {
+        console.error(chalk.red('❌ Usage limit exceeded:'), error instanceof Error ? error.message : error);
+        console.log(chalk.yellow('\n🔥 Upgrade to get more operations: https://codecontextpro.com'));
+        process.exit(1);
+      }
       
       const memory = new MemoryEngine();
       const data = await memory.exportMemory(process.cwd(), options.format);

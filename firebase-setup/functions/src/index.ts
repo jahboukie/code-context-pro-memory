@@ -92,23 +92,11 @@ export const createCheckout = functions.https.onRequest((req, res) => {
           return;
         }
         priceData = {
-          unit_amount: 9900, // $99.00
-          currency: "usd",
-          recurring: {interval: "month" as "month"},
-          product_data: {
-            name: "CodeContext Memory Pro - Early Adopter",
-            description: "🔥 LOCKED-IN FOREVER: $99/month AI Memory Revolution (First 10,000 only)",
-          },
+          price: "price_1RlZlNELGHd3NbdJ9KwKbDtU", // $99 Early Adopter Live
         };
       } else {
         priceData = {
-          unit_amount: 19900, // $199.00
-          currency: "usd",
-          recurring: {interval: "month" as "month"},
-          product_data: {
-            name: "CodeContext Memory Pro - Standard",
-            description: "🧠 AI Memory Revolution: $199/month",
-          },
+          price: "price_1RlZlxELGHd3NbdJxcfbS4hj", // $199 Standard Live
         };
       }
 
@@ -188,12 +176,14 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     throw new Error("Missing email or tier in session metadata");
   }
 
-  // Generate license key
-  const licenseKey = generateLicenseKey(email);
+  // Generate unique license key using Firestore's auto-generated document ID
+  const newLicenseDocRef = db.collection("licenses").doc(); // Firestore generates unique ID
+  const licenseKey = newLicenseDocRef.id;
 
-  // Create license document
+  // Create license document with Firestore-generated unique ID
   const licenseData = {
-    id: licenseKey,
+    key: licenseKey, // Store the key within the document
+    id: licenseKey, // Keep for backward compatibility
     email: email,
     tier: tier,
     price: tier === "early_adopter" ? 99 : 199,
@@ -210,9 +200,22 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
       executionEngine: false, // Phase 2 feature
     },
     maxProjects: -1, // Unlimited
+    // Usage tracking
+    usage: {
+      currentMonth: new Date().toISOString().substring(0, 7), // YYYY-MM
+      operations: 0,
+      lastReset: admin.firestore.FieldValue.serverTimestamp(),
+      limits: {
+        monthly: tier === "early_adopter" ? 1000 : 500, // Early adopter gets more
+        remember: tier === "early_adopter" ? 1000 : 500,
+        recall: tier === "early_adopter" ? 2000 : 1000,
+        scan: tier === "early_adopter" ? 100 : 50,
+        export: tier === "early_adopter" ? 50 : 20,
+      }
+    }
   };
 
-  await db.collection("licenses").doc(licenseKey).set(licenseData);
+  await newLicenseDocRef.set(licenseData);
 
   // Update stats if early adopter
   if (tier === "early_adopter") {
@@ -221,7 +224,8 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     });
   }
 
-  // TODO: Send welcome email with license key
+  // TODO: Send welcome email with license key via SendGrid
+  // await sendLicenseEmail(email, licenseKey);
   console.log(`License created for ${email}: ${licenseKey}`);
 }
 
@@ -389,15 +393,161 @@ export const initializeDatabase = functions.https.onRequest(async (req, res) => 
 });
 
 /**
- * Generate secure license key
+ * Get license key from Stripe session ID
  */
-function generateLicenseKey(email: string): string {
-  const timestamp = Date.now();
-  const hash = createHash("sha256")
-    .update(`${email}-${timestamp}-codecontext-pro`)
-    .digest("hex")
-    .substring(0, 16)
-    .toUpperCase();
+export const getLicenseKey = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
 
-  return `CCP-${hash.slice(0, 4)}-${hash.slice(4, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}`;
-}
+    try {
+      const {sessionId} = req.body;
+
+      if (!sessionId) {
+        res.status(400).json({error: "Session ID required"});
+        return;
+      }
+
+      // Retrieve the session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      
+      if (!session) {
+        res.status(404).json({error: "Session not found"});
+        return;
+      }
+
+      const email = session.metadata?.email;
+      if (!email) {
+        res.status(400).json({error: "Email not found in session metadata"});
+        return;
+      }
+
+      // Find the license by email (since we create it in the webhook)
+      const licensesQuery = await db.collection("licenses")
+        .where("email", "==", email)
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+
+      if (licensesQuery.empty) {
+        res.status(404).json({error: "License not found"});
+        return;
+      }
+
+      const licenseDoc = licensesQuery.docs[0];
+      const licenseData = licenseDoc.data();
+
+      res.json({
+        licenseKey: licenseData.key || licenseData.id,
+        email: licenseData.email,
+        tier: licenseData.tier
+      });
+
+    } catch (error) {
+      console.error("Error fetching license key:", error);
+      res.status(500).json({error: "Failed to fetch license key"});
+    }
+  });
+});
+
+/**
+ * Validate usage and increment counter (SECURITY CRITICAL)
+ * This prevents gaming the system - all operations must be server-validated
+ */
+export const validateUsage = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    try {
+      const {licenseKey, operation, email} = req.body;
+
+      if (!licenseKey || !operation || !email) {
+        res.status(400).json({error: "License key, operation, and email required"});
+        return;
+      }
+
+      // Get license document
+      const licenseDoc = await db.collection("licenses").doc(licenseKey).get();
+
+      if (!licenseDoc.exists) {
+        res.status(404).json({error: "License not found"});
+        return;
+      }
+
+      const license = licenseDoc.data();
+
+      // Verify email matches
+      if (license?.email !== email) {
+        res.status(403).json({error: "License email mismatch"});
+        return;
+      }
+
+      // Check if license is active
+      if (!license?.active) {
+        res.status(403).json({error: "License inactive"});
+        return;
+      }
+
+      // Check if usage needs monthly reset
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      const licenseUsage = license.usage || {};
+      
+      if (licenseUsage.currentMonth !== currentMonth) {
+        // Reset usage for new month
+        await licenseDoc.ref.update({
+          "usage.currentMonth": currentMonth,
+          "usage.operations": 0,
+          "usage.lastReset": admin.firestore.FieldValue.serverTimestamp(),
+        });
+        licenseUsage.operations = 0;
+      }
+
+      // Check operation-specific limits
+      const limits = licenseUsage.limits || {};
+      const operationLimit = limits[operation] || limits.monthly || 100;
+      const currentOperations = licenseUsage.operations || 0;
+
+      if (currentOperations >= operationLimit) {
+        res.status(429).json({
+          error: `Usage limit exceeded for ${operation}`,
+          limit: operationLimit,
+          used: currentOperations,
+          resetDate: `${currentMonth}-01`,
+          tier: license.tier,
+          upgradeUrl: "https://codecontextpro.com"
+        });
+        return;
+      }
+
+      // Increment usage BEFORE allowing operation (critical for security)
+      await licenseDoc.ref.update({
+        "usage.operations": admin.firestore.FieldValue.increment(1),
+        "usage.lastUsed": admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Success response
+      res.json({
+        success: true,
+        operation: operation,
+        remaining: operationLimit - currentOperations - 1,
+        limit: operationLimit,
+        tier: license.tier,
+        resetDate: `${currentMonth}-01`
+      });
+
+    } catch (error) {
+      console.error("Usage validation error:", error);
+      res.status(500).json({error: "Failed to validate usage"});
+    }
+  });
+});
+
+/**
+ * Firestore auto-generates unique document IDs - no custom function needed
+ * This ensures guaranteed uniqueness across all documents
+ */

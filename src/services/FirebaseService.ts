@@ -147,6 +147,28 @@ export class FirebaseService {
     };
   }
 
+  async validateUsage(operation: string, email: string, licenseKey: string): Promise<{success: boolean, remaining: number, limit: number, tier: string}> {
+    const response = await this.makeRequest('/validateUsage', {
+      method: 'POST',
+      body: {
+        licenseKey,
+        operation,
+        email
+      }
+    });
+
+    if (!response.success) {
+      throw new Error(response.error || 'Usage validation failed');
+    }
+
+    return {
+      success: response.success,
+      remaining: response.remaining,
+      limit: response.limit,
+      tier: response.tier
+    };
+  }
+
   async reportUsage(action: string, metadata?: any): Promise<void> {
     if (!this.apiKey) return; // Silent fail for usage tracking
 
