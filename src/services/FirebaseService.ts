@@ -198,17 +198,22 @@ export class FirebaseService {
   private encryptMemoryData(data: any): string {
     // Encrypt sensitive memory data before sending to cloud
     const key = this.apiKey || 'default-key';
-    const cipher = crypto.createCipher('aes256', key);
+    const keyBuffer = crypto.createHash('sha256').update(key).digest();
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', keyBuffer, iv);
     let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return encrypted;
+    return iv.toString('hex') + ':' + encrypted;
   }
 
   private decryptMemoryData(encryptedData: string): any {
     // Decrypt memory data from cloud
     const key = this.apiKey || 'default-key';
-    const decipher = crypto.createDecipher('aes256', key);
-    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+    const keyBuffer = crypto.createHash('sha256').update(key).digest();
+    const [ivHex, encrypted] = encryptedData.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', keyBuffer, iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return JSON.parse(decrypted);
   }
@@ -216,10 +221,12 @@ export class FirebaseService {
   private encryptCode(code: string): string {
     // Encrypt code before sending for execution
     const key = this.apiKey || 'default-key';
-    const cipher = crypto.createCipher('aes256', key);
+    const keyBuffer = crypto.createHash('sha256').update(key).digest();
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', keyBuffer, iv);
     let encrypted = cipher.update(code, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return encrypted;
+    return iv.toString('hex') + ':' + encrypted;
   }
 
   private getCliVersion(): string {
