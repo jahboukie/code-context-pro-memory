@@ -1,6 +1,6 @@
 {
   "name": "codecontext-memory",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Stop paying for AI amnesia. Give your AI assistant persistent memory superpowers.",
   "main": "dist/index.js",
   "bin": {
