@@ -86,7 +86,7 @@ Your AI assistant now has:
 
 Tier: ${license.tier.toUpperCase()}
 Price: $${license.price}/month (locked forever)
-Expires: ${license.expiresAt.toLocaleDateString()}
+Expires: ${license.expiresAt ? license.expiresAt.toLocaleDateString() : 'Never (subscription-based)'}
 
 Start using: codecontext init
       `);
@@ -106,7 +106,7 @@ Start using: codecontext init
       const license = this.decryptLicense(encryptedLicense);
       
       // Validate license is still active
-      if (new Date() > new Date(license.expiresAt)) {
+      if (license.expiresAt && new Date() > new Date(license.expiresAt)) {
         await this.removeLicense();
         throw new Error('License expired. Please renew at https://codecontextpro.com');
       }
@@ -188,7 +188,7 @@ Purchase: codecontext purchase your@email.com
 👤 User: ${license.email}
 🎯 Tier: ${license.tier.toUpperCase()} 
 💰 Price: $${license.price}/month (locked forever!)
-📅 Expires: ${license.expiresAt.toLocaleDateString()}
+📅 Expires: ${license.expiresAt ? license.expiresAt.toLocaleDateString() : 'Never (subscription-based)'}
 📊 Projects: ${license.maxProjects === -1 ? 'Unlimited' : license.maxProjects}
 
 ✅ FEATURES UNLOCKED:
