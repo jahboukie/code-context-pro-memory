@@ -232,18 +232,21 @@ You're part of the AI cognitive revolution! 🚀
     // Simple encryption for local storage
     const crypto = require('crypto');
     const key = crypto.scryptSync('codecontext-secret', 'salt', 32);
-    const cipher = crypto.createCipher('aes256', key);
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
     let encrypted = cipher.update(JSON.stringify(license), 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    return encrypted;
+    return iv.toString('hex') + ':' + encrypted;
   }
 
   private decryptLicense(encrypted: string): License {
     // Simple decryption for local storage
     const crypto = require('crypto');
     const key = crypto.scryptSync('codecontext-secret', 'salt', 32);
-    const decipher = crypto.createDecipher('aes256', key);
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    const [ivHex, encryptedData] = encrypted.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return JSON.parse(decrypted);
   }
