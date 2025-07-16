@@ -50,7 +50,7 @@ export class FirebaseService {
       }
     });
 
-    if (!response.success) {
+    if (!response.valid) {
       throw new Error(response.error || 'Invalid license key');
     }
 
