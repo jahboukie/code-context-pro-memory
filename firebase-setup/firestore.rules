@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // License collection - only authenticated users can read their own licenses
+    match /licenses/{licenseId} {
+      allow read, write: if request.auth != null && request.auth.token.email == resource.data.email;
+    }
+    
+    // Public stats for early adopter counter
+    match /public/stats {
+      allow read: if true;
+      allow write: if false; // Only functions can write
+    }
+    
+    // Usage analytics - authenticated users only
+    match /usage/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Payments collection - server only
+    match /payments/{paymentId} {
+      allow read, write: if false; // Only functions can access
+    }
+  }
+}

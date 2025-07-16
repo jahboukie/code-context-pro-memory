@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CodeContext Memory Pro - Documentation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; line-height: 1.6; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+    
+    .header { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 2rem 0; }
+    .header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; background: linear-gradient(135deg, #00f5ff, #ff0080); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header p { font-size: 1.2rem; opacity: 0.9; }
+    
+    .nav { background: #1a1a1a; padding: 1rem 0; border-bottom: 1px solid #333; }
+    .nav ul { list-style: none; display: flex; gap: 2rem; }
+    .nav a { color: #00f5ff; text-decoration: none; font-weight: 500; }
+    .nav a:hover { color: #ff0080; }
+    
+    .content { display: grid; grid-template-columns: 250px 1fr; gap: 2rem; padding: 2rem 0; }
+    .sidebar { background: #1a1a1a; padding: 1.5rem; border-radius: 8px; height: fit-content; }
+    .sidebar h3 { color: #00f5ff; margin-bottom: 1rem; }
+    .sidebar ul { list-style: none; }
+    .sidebar li { margin-bottom: 0.5rem; }
+    .sidebar a { color: #ccc; text-decoration: none; }
+    .sidebar a:hover { color: #00f5ff; }
+    
+    .main { background: #1a1a1a; padding: 2rem; border-radius: 8px; }
+    .main h2 { color: #00f5ff; margin-bottom: 1rem; }
+    .main h3 { color: #ff0080; margin: 1.5rem 0 0.5rem 0; }
+    
+    .code-block { background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; margin: 1rem 0; font-family: 'Courier New', monospace; font-size: 0.9rem; overflow-x: auto; }
+    .code-block .comment { color: #6e7681; }
+    .code-block .command { color: #00f5ff; }
+    .code-block .string { color: #a5d6ff; }
+    
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin: 2rem 0; }
+    .feature-card { background: #16213e; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; }
+    .feature-card h4 { color: #00f5ff; margin-bottom: 0.5rem; }
+    
+    .warning { background: #2e1a1a; border: 1px solid #ff8800; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    .warning h4 { color: #ff8800; margin-bottom: 0.5rem; }
+    
+    .success { background: #1a2e1a; border: 1px solid #00ff88; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    .success h4 { color: #00ff88; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>🧠 CodeContext Memory Pro</h1>
+      <p>Complete documentation for the AI memory revolution</p>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="container">
+      <ul>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#getting-started">Getting Started</a></li>
+        <li><a href="#commands">Commands</a></li>
+        <li><a href="#integration">VS Code Integration</a></li>
+        <li><a href="#api">API Reference</a></li>
+        <li><a href="#support">Support</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="container">
+      <div class="sidebar">
+        <h3>Quick Navigation</h3>
+        <ul>
+          <li><a href="#installation">📦 Installation</a></li>
+          <li><a href="#license">🔑 License Activation</a></li>
+          <li><a href="#initialization">🚀 Project Setup</a></li>
+          <li><a href="#commands">💻 CLI Commands</a></li>
+          <li><a href="#memory">🧠 Memory Management</a></li>
+          <li><a href="#vscode">🔧 VS Code Integration</a></li>
+          <li><a href="#troubleshooting">🔧 Troubleshooting</a></li>
+        </ul>
+      </div>
+
+      <div class="main">
+        <h2 id="installation">📦 Installation</h2>
+        <p>Get started with CodeContext Memory Pro in under 2 minutes:</p>
+        
+        <div class="code-block">
+<span class="comment"># Install globally via npm</span>
+<span class="command">npm install -g codecontext-memory</span>
+
+<span class="comment"># Verify installation</span>
+<span class="command">codecontext --version</span>
+        </div>
+
+        <div class="success">
+          <h4>✅ System Requirements</h4>
+          <p>Node.js 16.0.0 or higher • npm 7.0.0 or higher • Active internet connection</p>
+        </div>
+
+        <h2 id="license">🔑 License Activation</h2>
+        <p>CodeContext Memory Pro requires a valid license to unlock persistent memory features:</p>
+
+        <h3>Purchase License</h3>
+        <div class="code-block">
+<span class="comment"># Purchase early adopter license ($99/month)</span>
+<span class="command">codecontext purchase</span> <span class="string">your@email.com</span>
+        </div>
+
+        <h3>Activate License</h3>
+        <div class="code-block">
+<span class="comment"># Activate with your license key</span>
+<span class="command">codecontext activate</span> <span class="string">your@email.com CCP-XXXX-XXXX-XXXX-XXXX</span>
+        </div>
+
+        <div class="warning">
+          <h4>⚠️ Early Adopter Pricing</h4>
+          <p>First 10,000 licenses: $99/month (locked forever)<br>After 10,000 sold: $199/month</p>
+        </div>
+
+        <h2 id="initialization">🚀 Project Setup</h2>
+        <p>Initialize AI memory for your project:</p>
+
+        <div class="code-block">
+<span class="comment"># Navigate to your project directory</span>
+<span class="command">cd</span> <span class="string">your-project</span>
+
+<span class="comment"># Initialize persistent memory</span>
+<span class="command">codecontext init</span>
+
+<span class="comment"># Scan and analyze your project</span>
+<span class="command">codecontext scan --deep</span>
+        </div>
+
+        <h2 id="commands">💻 CLI Commands</h2>
+        
+        <div class="feature-grid">
+          <div class="feature-card">
+            <h4>🧠 Memory Commands</h4>
+            <div class="code-block">
+<span class="command">codecontext remember</span> <span class="string">"text"</span>
+<span class="command">codecontext recall</span> <span class="string">"query"</span>
+<span class="command">codecontext export</span> <span class="string">--format json</span>
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <h4>📊 Project Commands</h4>
+            <div class="code-block">
+<span class="command">codecontext status</span>
+<span class="command">codecontext scan</span>
+<span class="command">codecontext sync</span>
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <h4>🔧 Integration Commands</h4>
+            <div class="code-block">
+<span class="command">codecontext vscode</span>
+<span class="command">codecontext license</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="memory">🧠 Memory Management</h2>
+        <p>Store and retrieve information that persists across all AI sessions:</p>
+
+        <h3>Store Memory</h3>
+        <div class="code-block">
+<span class="comment"># Store a decision</span>
+<span class="command">codecontext remember</span> <span class="string">"We use React hooks for state management"</span> <span class="command">--type</span> <span class="string">decision</span>
+
+<span class="comment"># Store an issue</span>
+<span class="command">codecontext remember</span> <span class="string">"Payment API has rate limiting"</span> <span class="command">--type</span> <span class="string">issue</span> <span class="command">--context</span> <span class="string">"API Integration"</span>
+
+<span class="comment"># Store a pattern</span>
+<span class="command">codecontext remember</span> <span class="string">"Use async/await for database calls"</span> <span class="command">--type</span> <span class="string">pattern</span>
+        </div>
+
+        <h3>Retrieve Memory</h3>
+        <div class="code-block">
+<span class="comment"># Search all memories</span>
+<span class="command">codecontext recall</span> <span class="string">"React"</span>
+
+<span class="comment"># Filter by type</span>
+<span class="command">codecontext recall</span> <span class="string">"API"</span> <span class="command">--type</span> <span class="string">issue</span>
+
+<span class="comment"># Limit results</span>
+<span class="command">codecontext recall</span> <span class="string">"database"</span> <span class="command">--limit</span> <span class="string">5</span>
+        </div>
+
+        <h2 id="vscode">🔧 VS Code Integration</h2>
+        <p>Enable memory-powered VS Code integration:</p>
+
+        <div class="code-block">
+<span class="comment"># Set up VS Code integration</span>
+<span class="command">codecontext vscode</span>
+
+<span class="comment"># Restart VS Code to activate</span>
+        </div>
+
+        <div class="success">
+          <h4>✅ VS Code Features</h4>
+          <p>• Memory-aware code suggestions<br>• Persistent context across sessions<br>• Instant project understanding<br>• No extension required</p>
+        </div>
+
+        <h2 id="troubleshooting">🔧 Troubleshooting</h2>
+        
+        <h3>Common Issues</h3>
+        <div class="warning">
+          <h4>❌ License activation failed</h4>
+          <p>Verify your email and license key are correct. Check internet connection.</p>
+        </div>
+
+        <div class="warning">
+          <h4>❌ Project not initialized</h4>
+          <p>Run <code>codecontext init</code> in your project directory first.</p>
+        </div>
+
+        <div class="warning">
+          <h4>❌ Memory not syncing</h4>
+          <p>Ensure you have an active internet connection and valid license.</p>
+        </div>
+
+        <h3>Get Help</h3>
+        <p>📧 <strong>Support:</strong> support@codecontextpro.com</p>
+        <p>💬 <strong>Community:</strong> https://discord.gg/codecontext</p>
+        <p>🌐 <strong>Website:</strong> https://codecontextpro.com</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

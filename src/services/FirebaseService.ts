@@ -36,11 +36,11 @@ export class FirebaseService {
   private apiKey?: string;
 
   constructor() {
-    this.baseUrl = process.env.CODECONTEXT_API_URL || 'https://codecontextpro-api.web.app';
+    this.baseUrl = process.env.CODECONTEXT_API_URL || 'https://us-central1-codecontext-memory-pro.cloudfunctions.net';
   }
 
   async authenticate(email: string, licenseKey: string): Promise<License> {
-    const response = await this.makeRequest('/auth/validate', {
+    const response = await this.makeRequest('/validateLicense', {
       method: 'POST',
       body: {
         email,
