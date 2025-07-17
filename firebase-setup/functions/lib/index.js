@@ -31,7 +31,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAuthToken = exports.validateUsage = exports.getLicenseKey = exports.initializeDatabase = exports.reportUsage = exports.validateLicense = exports.stripeWebhook = exports.createCheckout = exports.getPricing = void 0;
+exports.getAuthToken = exports.validateUsage = exports.getLicenseKey = exports.initializeDatabase = exports.reportUsage = exports.validateLicense = exports.stripeWebhook = exports.createCheckout = exports.getPricingHttp = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const stripe_1 = __importDefault(require("stripe"));
@@ -49,7 +49,7 @@ const corsHandler = (0, cors_1.default)({ origin: true });
 /**
  * Get current pricing and availability
  */
-exports.getPricing = functions.https.onRequest((req, res) => {
+exports.getPricingHttp = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
         try {
             const statsDoc = await db.collection("public").doc("stats").get();
@@ -60,6 +60,10 @@ exports.getPricing = functions.https.onRequest((req, res) => {
             const remaining = Math.max(0, stats.earlyAdopterLimit - stats.earlyAdoptersSold);
             const isEarlyAdopterAvailable = remaining > 0;
             res.json({
+                test: {
+                    available: true,
+                    price: 1,
+                },
                 earlyAdopter: {
                     available: isEarlyAdopterAvailable,
                     price: 99,
@@ -84,12 +88,14 @@ exports.getPricing = functions.https.onRequest((req, res) => {
  */
 exports.createCheckout = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
+        console.log("createCheckout function started with:", req.body);
         if (req.method !== "POST") {
             res.status(405).json({ error: "Method not allowed" });
             return;
         }
         try {
             const { email, tier } = req.body;
+            console.log("Processing checkout for:", email, tier);
             if (!email || !tier) {
                 res.status(400).json({ error: "Email and tier required" });
                 return;
@@ -98,7 +104,12 @@ exports.createCheckout = functions.https.onRequest((req, res) => {
             const statsDoc = await db.collection("public").doc("stats").get();
             const stats = statsDoc.data() || { earlyAdoptersSold: 0, earlyAdopterLimit: 10000 };
             let priceData;
-            if (tier === "early_adopter") {
+            if (tier === "test") {
+                priceData = {
+                    price: "price_1Rm0RrELGHd3NbdJ2HSzqwDu", // $1.00 Test
+                };
+            }
+            else if (tier === "early_adopter") {
                 const remaining = Math.max(0, stats.earlyAdopterLimit - stats.earlyAdoptersSold);
                 if (remaining <= 0) {
                     res.status(400).json({ error: "Early adopter licenses sold out" });
@@ -113,6 +124,7 @@ exports.createCheckout = functions.https.onRequest((req, res) => {
                     price: "price_1RluloELGHd3NbdJdakkqP7J", // $199 Standard Live
                 };
             }
+            console.log("About to create Stripe session with price:", priceData.price);
             const session = await stripe.checkout.sessions.create({
                 customer_email: email,
                 payment_method_types: ["card"],
@@ -128,6 +140,7 @@ exports.createCheckout = functions.https.onRequest((req, res) => {
                     tier: tier,
                 },
             });
+            console.log("Stripe session created successfully:", session.id);
             res.json({ sessionId: session.id, url: session.url });
         }
         catch (error) {
@@ -149,12 +162,20 @@ exports.createCheckout = functions.https.onRequest((req, res) => {
 /**
  * Handle Stripe webhook events
  */
-exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
+exports.stripeWebhook = functions.runWith({
+    memory: "256MB"
+}).https.onRequest(async (req, res) => {
     var _a;
     const sig = req.headers["stripe-signature"];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ((_a = functions.config().stripe) === null || _a === void 0 ? void 0 : _a.webhook_secret);
+    console.log("Webhook received, signature:", sig ? "present" : "missing");
+    console.log("Webhook secret configured:", webhookSecret ? "yes" : "no");
     let event;
     try {
-        event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET || ((_a = functions.config().stripe) === null || _a === void 0 ? void 0 : _a.webhook_secret) || "");
+        // Ensure we have the raw body for signature verification
+        const body = req.rawBody || req.body;
+        event = stripe.webhooks.constructEvent(body, sig, webhookSecret || "");
+        console.log("Webhook signature verified successfully for event:", event.type);
     }
     catch (err) {
         console.error("Webhook signature verification failed:", err.message);
@@ -216,7 +237,7 @@ async function handleSuccessfulPayment(session) {
         email: email,
         firebaseUid: firebaseUser.uid,
         tier: tier,
-        price: tier === "early_adopter" ? 99 : 199,
+        price: tier === "test" ? 7.99 : tier === "early_adopter" ? 99 : 199,
         stripeCustomerId: session.customer,
         stripeSubscriptionId: session.subscription,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -224,23 +245,23 @@ async function handleSuccessfulPayment(session) {
         active: true,
         features: {
             persistentMemory: true,
-            cloudSync: true,
-            multiProject: true,
-            prioritySupport: true,
+            cloudSync: tier !== "test",
+            multiProject: tier !== "test",
+            prioritySupport: tier === "early_adopter",
             executionEngine: false, // Phase 2 feature
         },
-        maxProjects: -1,
+        maxProjects: tier === "test" ? 1 : -1,
         // Usage tracking
         usage: {
             currentMonth: new Date().toISOString().substring(0, 7),
             operations: 0,
             lastReset: admin.firestore.FieldValue.serverTimestamp(),
             limits: {
-                monthly: tier === "early_adopter" ? 1000 : 500,
-                remember: tier === "early_adopter" ? 1000 : 500,
-                recall: tier === "early_adopter" ? 2000 : 1000,
-                scan: tier === "early_adopter" ? 100 : 50,
-                export: tier === "early_adopter" ? 50 : 20,
+                monthly: tier === "test" ? 10 : tier === "early_adopter" ? 1000 : 500,
+                remember: tier === "test" ? 10 : tier === "early_adopter" ? 1000 : 500,
+                recall: tier === "test" ? 20 : tier === "early_adopter" ? 2000 : 1000,
+                scan: tier === "test" ? 5 : tier === "early_adopter" ? 100 : 50,
+                export: tier === "test" ? 2 : tier === "early_adopter" ? 50 : 20,
             }
         }
     };

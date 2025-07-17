@@ -30,7 +30,7 @@ const corsHandler = cors({origin: true});
 /**
  * Get current pricing and availability
  */
-export const getPricing = functions.https.onRequest((req, res) => {
+export const getPricingHttp = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
     try {
       const statsDoc = await db.collection("public").doc("stats").get();
@@ -43,6 +43,10 @@ export const getPricing = functions.https.onRequest((req, res) => {
       const isEarlyAdopterAvailable = remaining > 0;
 
       res.json({
+        test: {
+          available: true,
+          price: 1,
+        },
         earlyAdopter: {
           available: isEarlyAdopterAvailable,
           price: 99,
@@ -88,7 +92,11 @@ export const createCheckout = functions.https.onRequest((req, res) => {
       const stats = statsDoc.data() || {earlyAdoptersSold: 0, earlyAdopterLimit: 10000};
       
       let priceData;
-      if (tier === "early_adopter") {
+      if (tier === "test") {
+        priceData = {
+          price: "price_1Rm0RrELGHd3NbdJ2HSzqwDu", // $1.00 Test
+        };
+      } else if (tier === "early_adopter") {
         const remaining = Math.max(0, stats.earlyAdopterLimit - stats.earlyAdoptersSold);
         if (remaining <= 0) {
           res.status(400).json({error: "Early adopter licenses sold out"});
@@ -145,16 +153,26 @@ export const createCheckout = functions.https.onRequest((req, res) => {
 /**
  * Handle Stripe webhook events
  */
-export const stripeWebhook = functions.https.onRequest(async (req, res) => {
+export const stripeWebhook = functions.runWith({
+  memory: "256MB"
+}).https.onRequest(async (req, res) => {
   const sig = req.headers["stripe-signature"] as string;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret;
+  
+  console.log("Webhook received, signature:", sig ? "present" : "missing");
+  console.log("Webhook secret configured:", webhookSecret ? "yes" : "no");
+  
   let event: Stripe.Event;
 
   try {
+    // Ensure we have the raw body for signature verification
+    const body = req.rawBody || req.body;
     event = stripe.webhooks.constructEvent(
-      req.rawBody,
+      body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret || ""
+      webhookSecret || ""
     );
+    console.log("Webhook signature verified successfully for event:", event.type);
   } catch (err: any) {
     console.error("Webhook signature verification failed:", err.message);
     res.status(400).send(`Webhook Error: ${err.message}`);
@@ -219,7 +237,7 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     email: email,
     firebaseUid: firebaseUser.uid, // Add Firebase UID
     tier: tier,
-    price: tier === "early_adopter" ? 99 : 199,
+    price: tier === "test" ? 7.99 : tier === "early_adopter" ? 99 : 199,
     stripeCustomerId: session.customer,
     stripeSubscriptionId: session.subscription,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -227,23 +245,23 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     active: true,
     features: {
       persistentMemory: true,
-      cloudSync: true,
-      multiProject: true,
-      prioritySupport: true,
+      cloudSync: tier !== "test", // Test tier gets local only
+      multiProject: tier !== "test", // Test tier gets single project
+      prioritySupport: tier === "early_adopter",
       executionEngine: false, // Phase 2 feature
     },
-    maxProjects: -1, // Unlimited
+    maxProjects: tier === "test" ? 1 : -1, // Test: 1 project, others: unlimited
     // Usage tracking
     usage: {
       currentMonth: new Date().toISOString().substring(0, 7), // YYYY-MM
       operations: 0,
       lastReset: admin.firestore.FieldValue.serverTimestamp(),
       limits: {
-        monthly: tier === "early_adopter" ? 1000 : 500, // Early adopter gets more
-        remember: tier === "early_adopter" ? 1000 : 500,
-        recall: tier === "early_adopter" ? 2000 : 1000,
-        scan: tier === "early_adopter" ? 100 : 50,
-        export: tier === "early_adopter" ? 50 : 20,
+        monthly: tier === "test" ? 10 : tier === "early_adopter" ? 1000 : 500,
+        remember: tier === "test" ? 10 : tier === "early_adopter" ? 1000 : 500,
+        recall: tier === "test" ? 20 : tier === "early_adopter" ? 2000 : 1000,
+        scan: tier === "test" ? 5 : tier === "early_adopter" ? 100 : 50,
+        export: tier === "test" ? 2 : tier === "early_adopter" ? 50 : 20,
       }
     }
   };

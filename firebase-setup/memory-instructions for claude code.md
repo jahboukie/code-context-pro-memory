@@ -2,6 +2,8 @@
 
 CodeContext Pro Status Check
 Memory Engine Commands:
+node c:\Users\scorp\dbil\memory-cli\status-check.js
+
 
   # Check memory status
   node /mnt/c/Users/scorp/dbil/memory-cli/status-check.js
@@ -37,7 +39,7 @@ Memory Engine Commands:
   Combined Memory + Execution Workflow:
 
   # 1. Check memory status
-  node /mnt/c/Users/scorp/dbil/memory-cli/status-check.js
+  node Users/scorp/dbil/memory-cli/status-check.js
 
   # 2. Test logic in sandbox first
   node /mnt/c/Users/scorp/dbil/memory-cli/test-payment-flow-sandbox.js
