@@ -5,250 +5,179 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Payment Success - CodeContext Memory Pro</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; line-height: 1.6; }
-    .container { max-width: 800px; margin: 0 auto; padding: 2rem; text-align: center; }
+    .container { max-width: 800px; margin: 0 auto; padding: 0 20px; }
     
-    .success { background: linear-gradient(135deg, #1a2e1a, #2e4a2e); border: 2px solid #00ff88; border-radius: 16px; padding: 3rem; margin: 2rem 0; }
-    .success h1 { font-size: 2.5rem; margin-bottom: 1rem; color: #00ff88; }
-    .success p { font-size: 1.2rem; margin-bottom: 1rem; opacity: 0.9; }
+    .header { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 2rem 0; text-align: center; }
+    .header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; background: linear-gradient(135deg, #00f5ff, #ff0080); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     
-    .next-steps { background: #1a1a1a; border: 2px solid #333; border-radius: 16px; padding: 2rem; margin: 2rem 0; text-align: left; }
-    .next-steps h3 { color: #00f5ff; margin-bottom: 1rem; }
-    .next-steps ol { margin-left: 2rem; }
-    .next-steps li { margin-bottom: 1rem; }
-    .next-steps code { background: #333; padding: 2px 8px; border-radius: 4px; font-family: 'Courier New', monospace; }
+    .success-content { padding: 4rem 0; text-align: center; }
+    .success-icon { font-size: 4rem; margin-bottom: 2rem; }
+    .success-title { font-size: 2rem; margin-bottom: 1rem; color: #00ff88; }
+    .success-message { font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9; }
     
-    .btn { background: linear-gradient(135deg, #00f5ff, #ff0080); color: #fff; border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; margin: 1rem; transition: transform 0.2s; }
+    .license-key { background: #1a1a1a; border: 2px solid #00f5ff; border-radius: 12px; padding: 2rem; margin: 2rem 0; }
+    .license-key h3 { color: #00f5ff; margin-bottom: 1rem; }
+    .license-key .key { font-family: 'Courier New', monospace; font-size: 1.5rem; background: #000; padding: 1rem; border-radius: 8px; margin: 1rem 0; word-break: break-all; }
+    .license-key .copy-btn { background: #00f5ff; color: #000; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; margin-top: 1rem; }
+    
+    .status { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 2rem; margin: 2rem 0; }
+    .status.loading { border-color: #00f5ff; }
+    .status.success { border-color: #00ff88; }
+    .status.error { border-color: #ff0088; }
+    
+    .spinner { border: 4px solid #333; border-top: 4px solid #00f5ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    .cli-instructions { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 2rem; margin: 2rem 0; text-align: left; }
+    .cli-instructions h3 { color: #ff0080; margin-bottom: 1rem; }
+    .cli-instructions .code { background: #000; padding: 1rem; border-radius: 8px; font-family: 'Courier New', monospace; margin: 1rem 0; }
+    
+    .btn { background: linear-gradient(135deg, #00f5ff, #ff0080); color: #fff; border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; margin: 1rem 0; }
     .btn:hover { transform: translateY(-2px); }
-    
-    /* Modal Styles */
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); }
-    .modal-content { background-color: #1a1a1a; margin: 2% auto; padding: 2rem; border: 1px solid #333; border-radius: 16px; width: 90%; max-width: 1200px; max-height: 85vh; overflow-y: auto; }
-    .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-    .close:hover { color: #00f5ff; }
-    .docs-content h1 { color: #00f5ff; margin-bottom: 1rem; }
-    .docs-nav { display: flex; flex-wrap: wrap; gap: 1rem; margin: 2rem 0; padding: 1rem; background: #0a0a0a; border-radius: 8px; }
-    .docs-nav a { color: #00f5ff; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s; }
-    .docs-nav a:hover { background: #333; }
-    .docs-section { display: none; }
-    .docs-section.active { display: block; }
-    .docs-section h2 { color: #00f5ff; margin: 2rem 0 1rem 0; }
-    .docs-section h3 { color: #ff0080; margin: 1.5rem 0 0.5rem 0; }
-    .docs-section .code-block { background: #0d1117; border: 1px solid #333; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
-    .docs-section .code-block code { font-family: 'Courier New', monospace; font-size: 0.9rem; color: #00f5ff; }
-    .command-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin: 1rem 0; }
-    .command-card { background: #0a0a0a; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; }
-    .command-card h4 { color: #ff0080; margin-bottom: 0.5rem; }
-    .success-note { background: #1a2e1a; border: 1px solid #00ff88; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
-    .success-note h4 { color: #00ff88; margin-bottom: 0.5rem; }
-    .warning-note { background: #2e1a1a; border: 1px solid #ff8800; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
-    .warning-note h4 { color: #ff8800; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="success">
-      <h1>🎉 Welcome to the AI Memory Revolution!</h1>
-      <p>Your CodeContext Memory Pro license has been successfully purchased.</p>
-      <p><strong>Your License Key:</strong> <code id="license-key">Loading...</code></p>
-      <p>Save this key - you'll need it to activate your CLI!</p>
+  <div class="header">
+    <div class="container">
+      <h1>🎉 Payment Successful!</h1>
+      <p>Welcome to the AI Memory Revolution</p>
     </div>
-
-    <div class="next-steps">
-      <h3>🚀 Experience the Cognitive Revolution:</h3>
-      <ol>
-        <li><strong>Install the CLI:</strong><br><code>npm install -g codecontext-memory</code></li>
-        <li><strong>Activate your license:</strong><br><code>codecontext activate your@email.com YOUR-LICENSE-KEY</code></li>
-        <li><strong>Create a test project:</strong><br><code>mkdir C:\test-neural-project && cd C:\test-neural-project</code></li>
-        <li><strong>Initialize AI memory:</strong><br><code>codecontext init</code></li>
-        <li><strong>Store project context:</strong><br><code>codecontext remember "This project uses React with TypeScript for the frontend"</code></li>
-        <li><strong>Store an issue:</strong><br><code>codecontext remember "API endpoints are rate-limited to 100 requests per minute" --type issue</code></li>
-        <li><strong>Store a pattern:</strong><br><code>codecontext remember "Use async/await pattern for all database operations" --type pattern</code></li>
-        <li><strong>Test memory recall:</strong><br><code>codecontext recall "React"</code></li>
-        <li><strong>See the magic:</strong><br><code>codecontext status</code></li>
-      </ol>
-      <p style="margin-top: 1rem; color: #00ff88;"><strong>🧠 Your AI now has PERSISTENT MEMORY across ALL sessions!</strong></p>
-    </div>
-
-    <button onclick="openDocs()" class="btn">📚 Read Documentation</button>
-    <a href="https://discord.gg/codecontext" class="btn">💬 Join Community</a>
   </div>
 
-  <!-- Documentation Modal -->
-  <div id="docs-modal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeDocs()">&times;</span>
-      <div class="docs-content">
-        <h1>🧠 CodeContext Memory Pro - Documentation</h1>
-        <p>Complete documentation for the AI memory revolution</p>
-        
-        <div class="docs-nav">
-          <a href="#install-section" onclick="showSection('install-section')">📦 Installation</a>
-          <a href="#license-section" onclick="showSection('license-section')">🔑 License</a>
-          <a href="#commands-section" onclick="showSection('commands-section')">💻 Commands</a>
-          <a href="#memory-section" onclick="showSection('memory-section')">🧠 Memory</a>
-          <a href="#vscode-section" onclick="showSection('vscode-section')">🔧 VS Code</a>
-          <a href="#troubleshooting-section" onclick="showSection('troubleshooting-section')">🔧 Troubleshooting</a>
-        </div>
+  <div class="container">
+    <div class="success-content">
+      <div class="success-icon">🧠</div>
+      <h2 class="success-title">Your CodeContext Memory Pro License is Ready!</h2>
+      <p class="success-message">Setting up your account and generating your license key...</p>
+      
+      <div id="status" class="status loading">
+        <div class="spinner"></div>
+        <p>Verifying payment and setting up your account...</p>
+      </div>
 
-        <div id="install-section" class="docs-section active">
-          <h2>📦 Installation</h2>
-          <p>Get started with CodeContext Memory Pro in under 2 minutes:</p>
-          <div class="code-block">
-            <code># Install globally via npm<br>npm install -g codecontext-memory<br><br># Verify installation<br>codecontext --version</code>
-          </div>
-          <div class="success-note">
-            <h4>✅ System Requirements</h4>
-            <p>Node.js 16.0.0 or higher • npm 7.0.0 or higher • Active internet connection</p>
-          </div>
-        </div>
+      <div id="license-section" class="license-key" style="display: none;">
+        <h3>Your License Key</h3>
+        <div id="license-key" class="key"></div>
+        <button class="copy-btn" onclick="copyLicenseKey()">Copy License Key</button>
+        <p style="margin-top: 1rem; opacity: 0.8;">Save this key - you'll need it to activate your CLI!</p>
+      </div>
 
-        <div id="license-section" class="docs-section">
-          <h2>🔑 License Activation</h2>
-          <p>CodeContext Memory Pro requires a valid license to unlock persistent memory features:</p>
-          <div class="code-block">
-            <code># Activate with your license key<br>codecontext activate your@email.com CCP-XXXX-XXXX-XXXX-XXXX</code>
-          </div>
-          <div class="warning-note">
-            <h4>⚠️ Early Adopter Pricing</h4>
-            <p>First 10,000 licenses: $99/month (locked forever)<br>After 10,000 sold: $199/month</p>
-          </div>
-        </div>
-
-        <div id="commands-section" class="docs-section">
-          <h2>💻 CLI Commands</h2>
-          <div class="command-grid">
-            <div class="command-card">
-              <h4>🧠 Memory Commands</h4>
-              <div class="code-block">
-                <code>codecontext remember "text"<br>codecontext recall "query"<br>codecontext export --format json</code>
-              </div>
-            </div>
-            <div class="command-card">
-              <h4>📊 Project Commands</h4>
-              <div class="code-block">
-                <code>codecontext status<br>codecontext scan<br>codecontext sync</code>
-              </div>
-            </div>
-            <div class="command-card">
-              <h4>🔧 Integration Commands</h4>
-              <div class="code-block">
-                <code>codecontext vscode<br>codecontext license</code>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="memory-section" class="docs-section">
-          <h2>🧠 Memory Management</h2>
-          <p>Store and retrieve information that persists across all AI sessions:</p>
-          <h3>Store Memory</h3>
-          <div class="code-block">
-            <code># Store a decision<br>codecontext remember "We use React hooks for state management" --type decision<br><br># Store an issue<br>codecontext remember "Payment API has rate limiting" --type issue --context "API Integration"<br><br># Store a pattern<br>codecontext remember "Use async/await for database calls" --type pattern</code>
-          </div>
-          <h3>Retrieve Memory</h3>
-          <div class="code-block">
-            <code># Search all memories<br>codecontext recall "React"<br><br># Filter by type<br>codecontext recall "API" --type issue<br><br># Limit results<br>codecontext recall "database" --limit 5</code>
-          </div>
-        </div>
-
-        <div id="vscode-section" class="docs-section">
-          <h2>🔧 VS Code Integration</h2>
-          <p>Enable memory-powered VS Code integration:</p>
-          <div class="code-block">
-            <code># Set up VS Code integration<br>codecontext vscode<br><br># Restart VS Code to activate</code>
-          </div>
-          <div class="success-note">
-            <h4>✅ VS Code Features</h4>
-            <p>• Memory-aware code suggestions<br>• Persistent context across sessions<br>• Instant project understanding<br>• No extension required</p>
-          </div>
-        </div>
-
-        <div id="troubleshooting-section" class="docs-section">
-          <h2>🔧 Troubleshooting</h2>
-          <h3>Common Issues</h3>
-          <div class="warning-note">
-            <h4>❌ License activation failed</h4>
-            <p>Verify your email and license key are correct. Check internet connection.</p>
-          </div>
-          <div class="warning-note">
-            <h4>❌ Project not initialized</h4>
-            <p>Run <code>codecontext init</code> in your project directory first.</p>
-          </div>
-          <div class="warning-note">
-            <h4>❌ Memory not syncing</h4>
-            <p>Ensure you have an active internet connection and valid license.</p>
-          </div>
-          <h3>Get Help</h3>
-          <p>📧 <strong>Support:</strong> team.mobileweb@gmail.com</p>
-          <p>🌐 <strong>Website:</strong> https://codecontextpro.com</p>
+      <div class="cli-instructions">
+        <h3>🚀 Next Steps: Activate Your CLI</h3>
+        <div class="code">
+          <div>npm install -g codecontext-memory</div>
+          <div>codecontext activate <span id="user-email">your@email.com</span> <span id="cli-license-key">YOUR-LICENSE-KEY</span></div>
         </div>
       </div>
+
+      <a href="/" class="btn">Return to Homepage</a>
     </div>
   </div>
 
   <script>
-    const API_BASE = 'https://us-central1-codecontext-memory-pro.cloudfunctions.net';
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEWqJkxYJNPpAkLJ-7bTKvOkxGqPGLCnw",
+      authDomain: "codecontext-memory-pro.firebaseapp.com",
+      projectId: "codecontext-memory-pro",
+      storageBucket: "codecontext-memory-pro.appspot.com",
+      messagingSenderId: "565234567890",
+      appId: "1:565234567890:web:abc123def456ghi789"
+    };
     
-    // Documentation Modal Functions
-    function openDocs() {
-      document.getElementById('docs-modal').style.display = 'block';
-    }
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    
+    let sessionId = null;
+    let licenseKey = null;
+    let userEmail = null;
 
-    function closeDocs() {
-      document.getElementById('docs-modal').style.display = 'none';
-    }
-
-    function showSection(sectionId) {
-      // Hide all sections
-      const sections = document.querySelectorAll('.docs-section');
-      sections.forEach(section => section.classList.remove('active'));
+    async function authenticateUser() {
+      const urlParams = new URLSearchParams(window.location.search);
+      sessionId = urlParams.get('session_id');
+      const statusDiv = document.getElementById('status');
       
-      // Show selected section
-      document.getElementById(sectionId).classList.add('active');
+      if (!sessionId) {
+        statusDiv.className = 'status error';
+        statusDiv.innerHTML = '<p>❌ No session ID found. Please contact support if you completed a payment.</p>';
+        return;
+      }
+
+      try {
+        // Get license key first
+        const licenseResponse = await fetch('/api/getLicenseKey', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: sessionId })
+        });
+
+        if (!licenseResponse.ok) {
+          throw new Error('Failed to get license key');
+        }
+
+        const licenseData = await licenseResponse.json();
+        licenseKey = licenseData.licenseKey;
+        userEmail = licenseData.email;
+
+        // Show license key
+        document.getElementById('license-key').textContent = licenseKey;
+        document.getElementById('user-email').textContent = userEmail;
+        document.getElementById('cli-license-key').textContent = licenseKey;
+        document.getElementById('license-section').style.display = 'block';
+
+        // Get authentication token
+        const authResponse = await fetch('/api/getAuthToken', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: sessionId })
+        });
+
+        if (!authResponse.ok) {
+          throw new Error('Failed to get auth token');
+        }
+
+        const authData = await authResponse.json();
+        
+        // Sign in with custom token
+        await auth.signInWithCustomToken(authData.customToken);
+        
+        statusDiv.className = 'status success';
+        statusDiv.innerHTML = '<p>✅ Successfully authenticated! You are now logged in.</p>';
+        
+        console.log('User authenticated:', auth.currentUser);
+        
+      } catch (error) {
+        console.error('Authentication error:', error);
+        statusDiv.className = 'status error';
+        statusDiv.innerHTML = `<p>❌ Authentication failed: ${error.message}</p><p>Your license is still valid - you can activate it manually using the CLI.</p>`;
+      }
     }
 
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-      const modal = document.getElementById('docs-modal');
-      if (event.target === modal) {
-        closeDocs();
-      }
-    }
-    
-    // Get session_id from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
-    
-    if (sessionId) {
-      // Fetch the license key from Stripe session
-      fetchLicenseKey(sessionId);
-    } else {
-      document.getElementById('license-key').textContent = 'Error: No session ID found';
-    }
-    
-    async function fetchLicenseKey(sessionId) {
-      try {
-        const response = await fetch(`${API_BASE}/getLicenseKey`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ sessionId }),
+    function copyLicenseKey() {
+      if (licenseKey) {
+        navigator.clipboard.writeText(licenseKey).then(() => {
+          const btn = document.querySelector('.copy-btn');
+          const originalText = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => {
+            btn.textContent = originalText;
+          }, 2000);
         });
-        
-        if (response.ok) {
-          const data = await response.json();
-          document.getElementById('license-key').textContent = data.licenseKey;
-        } else {
-          document.getElementById('license-key').textContent = 'Error loading license key';
-        }
-      } catch (error) {
-        document.getElementById('license-key').textContent = 'Error loading license key';
       }
     }
+
+    // Start authentication when page loads
+    document.addEventListener('DOMContentLoaded', authenticateUser);
   </script>
 </body>
 </html>

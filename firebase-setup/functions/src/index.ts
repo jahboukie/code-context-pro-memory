@@ -18,7 +18,7 @@ const db = admin.firestore();
 const stripe = new Stripe(
   process.env.STRIPE_SECRET_KEY || functions.config().stripe?.secret_key || "",
   {
-    apiVersion: "2022-08-01",
+    apiVersion: "2023-10-16",
   }
 );
 
@@ -67,6 +67,8 @@ export const getPricing = functions.https.onRequest((req, res) => {
  */
 export const createCheckout = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    console.log("createCheckout function started with:", req.body);
+    
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
       return;
@@ -74,6 +76,7 @@ export const createCheckout = functions.https.onRequest((req, res) => {
 
     try {
       const {email, tier} = req.body;
+      console.log("Processing checkout for:", email, tier);
 
       if (!email || !tier) {
         res.status(400).json({error: "Email and tier required"});
@@ -92,34 +95,49 @@ export const createCheckout = functions.https.onRequest((req, res) => {
           return;
         }
         priceData = {
-          price: "price_1RlZlNELGHd3NbdJ9KwKbDtU", // $99 Early Adopter Live
+          price: "price_1Rlu15ELGHd3NbdJ2oxuZF26", // $99 Early Adopter Live
         };
       } else {
         priceData = {
-          price: "price_1RlZlxELGHd3NbdJxcfbS4hj", // $199 Standard Live
+          price: "price_1RluloELGHd3NbdJdakkqP7J", // $199 Standard Live
         };
       }
 
+      console.log("About to create Stripe session with price:", priceData.price);
+      
       const session = await stripe.checkout.sessions.create({
         customer_email: email,
         payment_method_types: ["card"],
         line_items: [{
-          price_data: priceData,
+          price: priceData.price,
           quantity: 1,
         }],
         mode: "subscription",
-        success_url: `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.origin}/cancel`,
+        success_url: `https://codecontext-memory-pro.web.app/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `https://codecontext-memory-pro.web.app/cancel`,
         metadata: {
           email: email,
           tier: tier,
         },
       });
+      
+      console.log("Stripe session created successfully:", session.id);
 
       res.json({sessionId: session.id, url: session.url});
-    } catch (error) {
-      console.error("Error creating checkout:", error);
-      res.status(500).json({error: "Failed to create checkout session"});
+    } catch (error: any) {
+      // Log the detailed error with a structured object for Cloud Logging
+      console.error("Stripe Checkout Session Error:", {
+        message: error.message,
+        statusCode: error.statusCode, // For Stripe API errors
+        type: error.type,
+        code: error.code,
+        rawError: error // Log the entire error object for full details
+      });
+      
+      res.status(500).json({
+        error: "Failed to create checkout session",
+        details: error.message || "Unknown error"
+      });
     }
   });
 });
@@ -176,6 +194,20 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     throw new Error("Missing email or tier in session metadata");
   }
 
+  // Create Firebase Auth user if they don't exist
+  let firebaseUser;
+  try {
+    firebaseUser = await admin.auth().getUserByEmail(email);
+  } catch (error) {
+    // User doesn't exist, create them
+    firebaseUser = await admin.auth().createUser({
+      email: email,
+      emailVerified: true,
+      displayName: email.split('@')[0],
+    });
+    console.log(`Created Firebase Auth user: ${firebaseUser.uid}`);
+  }
+
   // Generate unique license key using Firestore's auto-generated document ID
   const newLicenseDocRef = db.collection("licenses").doc(); // Firestore generates unique ID
   const licenseKey = newLicenseDocRef.id;
@@ -185,6 +217,7 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     key: licenseKey, // Store the key within the document
     id: licenseKey, // Keep for backward compatibility
     email: email,
+    firebaseUid: firebaseUser.uid, // Add Firebase UID
     tier: tier,
     price: tier === "early_adopter" ? 99 : 199,
     stripeCustomerId: session.customer,
@@ -543,6 +576,53 @@ export const validateUsage = functions.https.onRequest((req, res) => {
     } catch (error) {
       console.error("Usage validation error:", error);
       res.status(500).json({error: "Failed to validate usage"});
+    }
+  });
+});
+
+/**
+ * Generate custom token for user authentication after successful payment
+ */
+export const getAuthToken = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    try {
+      const {sessionId} = req.body;
+
+      if (!sessionId) {
+        res.status(400).json({error: "Session ID required"});
+        return;
+      }
+
+      // Retrieve the Stripe session
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      
+      if (!session || !session.metadata?.email) {
+        res.status(404).json({error: "Session not found or missing email"});
+        return;
+      }
+
+      const email = session.metadata.email;
+
+      // Get the Firebase user
+      const firebaseUser = await admin.auth().getUserByEmail(email);
+      
+      // Generate custom token
+      const customToken = await admin.auth().createCustomToken(firebaseUser.uid);
+
+      res.json({
+        customToken: customToken,
+        email: email,
+        uid: firebaseUser.uid
+      });
+
+    } catch (error) {
+      console.error("Error generating auth token:", error);
+      res.status(500).json({error: "Failed to generate auth token"});
     }
   });
 });

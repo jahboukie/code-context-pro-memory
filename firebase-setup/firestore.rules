@@ -9,7 +9,7 @@ service cloud.firestore {
     // Public stats for early adopter counter
     match /public/stats {
       allow read: if true;
-      allow write: if false; // Only functions can write
+      allow write: if true; // Allow Cloud Functions to write stats
     }
     
     // Usage analytics - authenticated users only

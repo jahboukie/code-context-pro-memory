@@ -46,6 +46,10 @@
         "function": "validateUsage"
       },
       {
+        "source": "/api/getAuthToken",
+        "function": "getAuthToken"
+      },
+      {
         "source": "/success",
         "destination": "/success.html"
       },
