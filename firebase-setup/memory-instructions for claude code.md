@@ -1,9 +1,15 @@
-●  "C:\Users\scorp\dbil\memory-cli\use-this\codecontext-pro-developer-edition\execution-engine"
+●  
+
+c:\Users\scorp\dbil\memory-cli\use-this\codecontext-pro-developer-edition; npm install
+
+cd use-this && codecontext-pro init --memory-only
+
+"C:\Users\scorp\dbil\memory-cli\use-this\codecontext-pro-developer-edition\execution-engine"
 
 CodeContext Pro Status Check
 Memory Engine Commands:
 node c:\Users\scorp\dbil\memory-cli\status-check.js
-
+npm install -g .; codecontext-pro status
 
   # Check memory status
   node /mnt/c/Users/scorp/dbil/memory-cli/status-check.js

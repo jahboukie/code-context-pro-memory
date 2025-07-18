@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CodeContext Memory Pro - AI Memory Revolution</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; line-height: 1.6; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+    
+    .header { background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 2rem 0; text-align: center; }
+    .header h1 { font-size: 3rem; font-weight: 700; margin-bottom: 1rem; background: linear-gradient(135deg, #00f5ff, #ff0080); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header p { font-size: 1.5rem; margin-bottom: 2rem; color: #bbb; }
+    
+    .pricing-section { padding: 4rem 0; text-align: center; }
+    .pricing-section h2 { font-size: 2.5rem; margin-bottom: 3rem; color: #00f5ff; }
+    .pricing-cards { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+    .card { background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 40px; width: 350px; text-align: left; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4); transition: transform 0.3s ease; }
+    .card:hover { transform: translateY(-10px); }
+    .card h3 { font-size: 2rem; margin-bottom: 1rem; color: #ff0080; }
+    .card .price { font-size: 3rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .card .price span { font-size: 1.5rem; font-weight: 400; opacity: 0.7; }
+    .card ul { list-style: none; margin-bottom: 2rem; }
+    .card ul li { margin-bottom: 1rem; font-size: 1.1rem; }
+    .card ul li::before { content: '✓'; color: #00f5ff; margin-right: 10px; }
+    .card button { background: linear-gradient(135deg, #00f5ff, #ff0080); border: none; padding: 15px 30px; border-radius: 8px; color: #fff; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: opacity 0.3s ease; width: 100%; }
+    .card button:hover { opacity: 0.9; }
+    .card button:disabled { background: #555; cursor: not-allowed; }
+    
+    .loading-message { text-align: center; margin-top: 30px; }
+    .error-message { text-align: center; margin-top: 30px; color: #ff4500; display: none; }
+    .error-message p { margin-bottom: 10px; }
+
+    .faq-section { padding: 4rem 0; text-align: center; background: #111; }
+    .faq-section h2 { font-size: 2.5rem; margin-bottom: 3rem; color: #00f5ff; }
+    .faq-item { background: #1a1a2e; border-radius: 8px; margin-bottom: 20px; text-align: left; overflow: hidden; }
+    .faq-question { padding: 20px; font-size: 1.2rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #1a1a2e; color: #fff; border: none; width: 100%; text-align: left; }
+    .faq-question .arrow { transition: transform 0.3s ease; }
+    .faq-question.active .arrow { transform: rotate(180deg); }
+    .faq-answer { padding: 0 20px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, padding 0.3s ease-out; background: #222; }
+    .faq-answer p { padding-bottom: 20px; color: #ccc; }
+    .faq-answer.active { max-height: 200px; /* Adjust as needed */ padding-top: 20px; }
+
+    .footer { background: #0a0a0a; color: #bbb; text-align: center; padding: 2rem 0; font-size: 0.9rem; }
+    .footer p { margin-bottom: 0.5rem; }
+    .footer a { color: #00f5ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>CodeContext Memory Pro</h1>
+      <p>Revolutionize your coding with persistent AI memory</p>
+    </div>
+  </div>
+
+  <div class="pricing-section">
+    <div class="container">
+      <h2>Choose Your Plan</h2>
+      
+      <div id="early-adopter-counter" style="text-align: center; margin: 2rem 0;">
+        <div style="font-size: 3rem; font-weight: bold; color: #ff0080; margin-bottom: 0.5rem;" id="remaining-count">Loading...</div>
+        <div style="font-size: 1.2rem; color: #ccc;">early adopter licenses remaining</div>
+      </div>
+      
+      <div class="pricing-cards">
+        <div class="card">
+          <h3>Test</h3>
+          <p class="price">$7.99<span>/month</span></p>
+          <ul>
+            <li>🧠 10 Memory Operations/Month</li>
+            <li>📝 10 Remember Commands</li>
+            <li>🔍 20 Recall Searches</li>
+            <li>📊 5 Project Scans</li>
+            <li>📤 2 Memory Exports</li>
+            <li>🔧 VS Code Integration</li>
+            <li>📁 Single Project Support</li>
+          </ul>
+          <button id="test-btn">Loading...</button>
+        </div>
+
+        <div class="card">
+          <h3>Early Adopter</h3>
+          <p class="price">$99<span>/month</span></p>
+          <ul>
+            <li>🧠 1,000 Memory Operations/Month</li>
+            <li>📝 1,000 Remember Commands</li>
+            <li>🔍 2,000 Recall Searches</li>
+            <li>📊 100 Project Scans</li>
+            <li>📤 50 Memory Exports</li>
+            <li>☁️ Cloud Sync Across Devices</li>
+            <li>🔧 VS Code Integration</li>
+            <li>📁 Multi-Project Support</li>
+            <li>🎯 Priority Support</li>
+            <li>💎 Founding Member Status</li>
+            <li>🔒 Price Never Increases</li>
+          </ul>
+          <button id="early-adopter-btn">Loading...</button>
+        </div>
+
+        <div class="card">
+          <h3>Standard</h3>
+          <p class="price">$199<span>/month</span></p>
+          <p style="color: #ccc; margin-bottom: 1.5rem;">Available after specials sell out</p>
+          <ul>
+            <li>🧠 500 Memory Operations/Month</li>
+            <li>📝 500 Remember Commands</li>
+            <li>🔍 1,000 Recall Searches</li>
+            <li>📊 50 Project Scans</li>
+            <li>📤 20 Memory Exports</li>
+            <li>☁️ Cloud Sync Across Devices</li>
+            <li>🔧 VS Code Integration</li>
+            <li>📁 Multi-Project Support</li>
+            <li>🎯 Priority Support</li>
+          </ul>
+          <button id="standard-btn">Loading...</button>
+        </div>
+      </div>
+      <div id="loading" class="loading-message">Loading pricing...</div>
+      <div id="error-message" class="error-message">
+        <p id="error-text"></p>
+        <button onclick="hideError()">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-item">
+        <button class="faq-question">What is CodeContext Memory Pro?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>It's an AI-powered tool that provides persistent memory for your coding projects. It remembers your codebase, discussions, and decisions across sessions and projects, acting as a smart, ever-present assistant.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">How does it work?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>It integrates with your development environment, indexing your code and conversations. Using advanced AI, it creates a searchable, contextual memory that you can query at any time, even across different projects.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">Is my code secure?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>Yes, security is our top priority. Your code and data are encrypted both in transit and at rest. We adhere to industry best practices for data privacy and security.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">What's the difference between Early Adopter and Standard?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>Early Adopter tier offers a significant discount for a limited number of users, along with higher usage limits and priority support, as a thank you for joining us early. Standard is the regular pricing with generous limits and standard support.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">Can I cancel my subscription?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>Yes, you can cancel your subscription at any time through your account portal. Your access will continue until the end of your current billing period.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="docs-section" style="padding: 4rem 0; background: #111;">
+    <div class="container">
+      <h2 style="font-size: 2.5rem; margin-bottom: 3rem; color: #00f5ff; text-align: center;">🚀 Getting Started</h2>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">📦 Installation</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Install globally via npm</div>
+            <div style="color: #00f5ff;">npm install -g codecontext-memory</div>
+            <br>
+            <div style="color: #6e7681;"># Verify installation</div>
+            <div style="color: #00f5ff;">codecontext --version</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">🔑 License Activation</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Activate with your license key</div>
+            <div style="color: #00f5ff;">codecontext activate</div>
+            <div style="color: #a5d6ff;">your@email.com LICENSE-KEY</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">🚀 Project Setup</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Initialize in your project</div>
+            <div style="color: #00f5ff;">codecontext init</div>
+            <br>
+            <div style="color: #6e7681;"># Scan and analyze project</div>
+            <div style="color: #00f5ff;">codecontext scan --deep</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">🧠 Memory Commands</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Store memory</div>
+            <div style="color: #00f5ff;">codecontext remember</div>
+            <div style="color: #a5d6ff;">"Your AI will remember this"</div>
+            <br>
+            <div style="color: #6e7681;"># Recall memories</div>
+            <div style="color: #00f5ff;">codecontext recall</div>
+            <div style="color: #a5d6ff;">"search query"</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">📊 Project Management</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Check status</div>
+            <div style="color: #00f5ff;">codecontext status</div>
+            <br>
+            <div style="color: #6e7681;"># Export memories</div>
+            <div style="color: #00f5ff;">codecontext export --format json</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">🔧 VS Code Integration</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Set up VS Code integration</div>
+            <div style="color: #00f5ff;">codecontext vscode</div>
+            <br>
+            <div style="color: #6e7681;"># Restart VS Code to activate</div>
+          </div>
+          <div style="background: #1a2e1a; border: 1px solid #00ff88; border-radius: 6px; padding: 1rem; margin: 1rem 0;">
+            <div style="color: #00ff88; font-weight: 600; margin-bottom: 0.5rem;">✅ No Extension Required</div>
+            <div style="font-size: 0.9rem;">Memory-aware suggestions • Persistent context • Instant project understanding</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 3rem;">
+        <a href="/docs" style="background: linear-gradient(135deg, #00f5ff, #ff0080); color: #fff; text-decoration: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1.1rem; font-weight: 600; display: inline-block;">📚 View Full Documentation</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>&copy; 2025 CodeContext Memory Pro. All rights reserved.</p>
+      <p><a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+    </div>
+  </div>
+
+  <script>
+    // YOUR FIREBASE PROJECT CONFIGURATION (from Firebase Console -> Project settings -> Your apps -> Web app -> Config)
+    const firebaseConfig = {
+  apiKey: "AIzaSyA3Ey4FFcBjpidKxXGycswQHGd9ZhSCrWM",
+  authDomain: "codecontext-memory-pro.firebaseapp.com",
+  projectId: "codecontext-memory-pro",
+  storageBucket: "codecontext-memory-pro.firebasestorage.app",
+  messagingSenderId: "478590428881",
+  appId: "1:478590428881:web:0f0f17c116a10e3c8e87f0"
+};
+      
+      
+      
+      
+      
+      
+    
+    
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Initialize Firebase Functions client
+    const functions = firebase.functions();
+
+    // Initialize Stripe.js with your PUBLIC (pk_live_...) key
+    // This key is safe to include in your client-side code.
+    const stripe = Stripe('pk_live_51RB0ZzELGHd3NbdJ05ELmsgtTJMLoQbGkE4DOWAxfjbyxKbOOZ5qVChfmoKKQnCk8Col7SJjNYjSh2KmUvdPu24700EHbBIK9f'); 
+
+    // Helper functions
+    function showError(message) {
+      document.getElementById('error-text').textContent = message;
+      document.getElementById('error-message').style.display = 'block';
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('test-btn').disabled = false;
+      document.getElementById('early-adopter-btn').disabled = false;
+      document.getElementById('standard-btn').disabled = false;
+      document.getElementById('test-btn').textContent = 'Error Loading';
+      document.getElementById('early-adopter-btn').textContent = 'Error Loading';
+      document.getElementById('standard-btn').textContent = 'Error Loading';
+    }
+
+    function hideError() {
+      document.getElementById('error-message').style.display = 'none';
+    }
+
+    // Main pricing logic
+    async function getPricing() {
+      try {
+        const testBtn = document.getElementById('test-btn');
+        const earlyAdopterBtn = document.getElementById('early-adopter-btn');
+        const standardBtn = document.getElementById('standard-btn');
+        const loadingDiv = document.getElementById('loading');
+
+        loadingDiv.style.display = 'block';
+        testBtn.disabled = true;
+        earlyAdopterBtn.disabled = true;
+        standardBtn.disabled = true;
+
+        // Call your getPricing Cloud Function using HTTP
+        const response = await fetch('https://us-central1-codecontext-memory-pro.cloudfunctions.net/getPricingHttp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        const pricing = await response.json();
+
+        loadingDiv.style.display = 'none';
+
+        // Update the remaining count
+        const remainingCountEl = document.getElementById('remaining-count');
+        if (pricing.earlyAdopter && typeof pricing.earlyAdopter.remaining !== 'undefined') {
+          remainingCountEl.textContent = pricing.earlyAdopter.remaining.toLocaleString();
+        } else {
+          remainingCountEl.textContent = '10000';
+        }
+
+        if (pricing.test && pricing.test.available) {
+          testBtn.textContent = 'Get Test License';
+          testBtn.disabled = false;
+          testBtn.onclick = () => purchaseLicense('test');
+        } else {
+          testBtn.textContent = 'Not Available';
+          testBtn.disabled = true;
+        }
+
+        if (pricing.earlyAdopter.available) {
+          earlyAdopterBtn.textContent = 'Get Early Adopter License';
+          earlyAdopterBtn.disabled = false;
+          earlyAdopterBtn.onclick = () => purchaseLicense('early_adopter');
+        } else {
+          earlyAdopterBtn.textContent = 'Sold Out';
+          earlyAdopterBtn.disabled = true;
+        }
+
+        if (pricing.standard.available) {
+          standardBtn.textContent = 'Get Standard License';
+          standardBtn.disabled = false;
+          standardBtn.onclick = () => purchaseLicense('standard');
+        } else {
+          standardBtn.textContent = 'Not Available';
+          standardBtn.disabled = true;
+        }
+        
+      } catch (error) {
+        console.error("Error calling getPricing function:", error); // Log actual error
+        showError('Failed to load pricing. Please refresh the page.');
+      }
+    }
+
+    async function purchaseLicense(tier) {
+      const email = prompt('Enter your email address:');
+      if (!email) return;
+      
+      if (!email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+      }
+
+      try {
+        document.getElementById('loading').style.display = 'block';
+        
+        // Use direct HTTP call instead of Firebase callable
+        const response = await fetch('https://us-central1-codecontext-memory-pro.cloudfunctions.net/createCheckout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            tier: tier
+          })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create checkout session');
+        }
+
+        // Redirect to Stripe checkout
+        if (result.url) {
+          window.location.href = result.url;
+        } else {
+          throw new Error('No checkout URL returned');
+        }
+        
+      } catch (error) {
+        console.error('Error calling createCheckout function:', error);
+        document.getElementById('loading').style.display = 'none';
+        showError(error.message || 'Failed to create checkout session. Please try again.');
+      }
+    }
+
+    // Initial load
+    getPricing();
+
+    // FAQ Toggle
+    document.querySelectorAll('.faq-question').forEach(button => {
+      button.addEventListener('click', () => {
+        const answer = button.nextElementSibling;
+        button.classList.toggle('active');
+        answer.classList.toggle('active');
+      });
+    });
+  </script>
+</body>
+</html>
