@@ -94,7 +94,7 @@ export const createCheckout = functions.https.onRequest((req, res) => {
       let priceData;
       if (tier === "test") {
         priceData = {
-          price: "price_1Rm0RrELGHd3NbdJ2HSzqwDu", // $1.00 Test
+          price: "price_1Rm1UmELGHd3NbdJ6rwCIMx3", // $7.99 Test
         };
       } else if (tier === "early_adopter") {
         const remaining = Math.max(0, stats.earlyAdopterLimit - stats.earlyAdoptersSold);

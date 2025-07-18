@@ -1,11 +1,11 @@
 {
   "name": "codecontext-memory",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "Stop paying for AI amnesia. Give your AI assistant persistent memory superpowers.",
   "main": "dist/index.js",
   "bin": {
-    "codecontext": "./dist/cli-memory-only.js",
-    "ccmemory": "./dist/cli-memory-only.js"
+    "codecontext": "./dist/cli-premium.js",
+    "ccmemory": "./dist/cli-premium.js"
   },
   "scripts": {
     "build": "tsc",

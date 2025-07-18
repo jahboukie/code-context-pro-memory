@@ -86,12 +86,12 @@
   <script>
     // Initialize Firebase
     const firebaseConfig = {
-      apiKey: "AIzaSyBEWqJkxYJNPpAkLJ-7bTKvOkxGqPGLCnw",
+      apiKey: "AIzaSyA3Ey4FFcBjpidKxXGycswQHGd9ZhSCrWM",
       authDomain: "codecontext-memory-pro.firebaseapp.com",
       projectId: "codecontext-memory-pro",
-      storageBucket: "codecontext-memory-pro.appspot.com",
-      messagingSenderId: "565234567890",
-      appId: "1:565234567890:web:abc123def456ghi789"
+      storageBucket: "codecontext-memory-pro.firebasestorage.app",
+      messagingSenderId: "478590428881",
+      appId: "1:478590428881:web:0f0f17c116a10e3c8e87f0"
     };
     
     firebase.initializeApp(firebaseConfig);
@@ -115,7 +115,7 @@
 
       try {
         // Get license key first
-        const licenseResponse = await fetch('/api/getLicenseKey', {
+        const licenseResponse = await fetch('https://us-central1-codecontext-memory-pro.cloudfunctions.net/getLicenseKey', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId: sessionId })
@@ -136,7 +136,7 @@
         document.getElementById('license-section').style.display = 'block';
 
         // Get authentication token
-        const authResponse = await fetch('/api/getAuthToken', {
+        const authResponse = await fetch('https://us-central1-codecontext-memory-pro.cloudfunctions.net/getAuthToken', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId: sessionId })
