@@ -1,0 +1,20 @@
+{
+  "name": "codecontext-firebase-setup",
+  "version": "1.0.0",
+  "description": "Secure Firebase setup for CodeContext Memory Pro",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "NODE_ENV=development node build.js && echo 'Development build complete'",
+    "prod": "NODE_ENV=production node build.js && echo 'Production build complete'",
+    "deploy": "npm run prod && firebase deploy",
+    "serve": "firebase serve --only hosting",
+    "setup": "echo 'Setting up environment...' && cp .env.example .env && echo 'Please edit .env file with your values'"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  },
+  "keywords": ["firebase", "security", "environment"],
+  "author": "CodeContext Pro",
+  "license": "MIT"
+}

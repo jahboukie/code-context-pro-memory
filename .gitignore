@@ -48,6 +48,20 @@ logs
 # Testing
 .codecontext/
 
+# CRITICAL SECURITY: Admin tools - NEVER commit to public repo
+admin/
+internal/
+manual-license-generator.js
+license-generator.*
+admin-tools/
+*.admin.js
+*.manual.*
+*-generator.*
+
+# Documentation files (except README.md)
+*.md
+!README.md
+
 # Temporary files
 *.tmp
 *.temp

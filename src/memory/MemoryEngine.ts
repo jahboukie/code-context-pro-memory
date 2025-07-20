@@ -6,6 +6,8 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 import { Database } from 'sqlite3';
 import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
+import * as os from 'os';
 import { 
   ProjectStatus, 
   ProjectAnalysis, 
@@ -18,6 +20,7 @@ import {
 export class MemoryEngine {
   private config: MemoryConfig;
   private db: Database | null = null;
+  private encryptionKey: Buffer | null = null;
 
   constructor(projectPath?: string) {
     this.config = {
@@ -384,13 +387,142 @@ export class MemoryEngine {
     await this.execute(schema);
   }
 
+  // SECURITY: Generate machine-specific encryption key for database
+  private generateEncryptionKey(): Buffer {
+    if (this.encryptionKey) return this.encryptionKey;
+    
+    // Create machine-specific key using hostname, platform, and user info
+    const machineId = crypto.createHash('sha256')
+      .update(os.hostname() + os.platform() + os.userInfo().username + 'codecontext-db')
+      .digest('hex');
+    
+    // Use machine-specific salt and derived key
+    const salt = crypto.createHash('sha256').update(machineId + 'memory-db-salt').digest('hex').slice(0, 32);
+    this.encryptionKey = crypto.scryptSync(machineId, salt, 32);
+    
+    return this.encryptionKey;
+  }
+
+  // SECURITY: Calculate integrity hash for data verification
+  private calculateIntegrityHash(data: Buffer): string {
+    return crypto.createHash('sha256').update(data).digest('hex');
+  }
+
+  // SECURITY: Encrypt database file before writing with integrity verification
+  private async encryptDatabaseFile(dbPath: string): Promise<void> {
+    if (!await fs.pathExists(dbPath)) return;
+    
+    const key = this.generateEncryptionKey();
+    const data = await fs.readFile(dbPath);
+    
+    // Calculate integrity hash before encryption
+    const integrityHash = this.calculateIntegrityHash(data);
+    
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    
+    let encrypted = cipher.update(data);
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    
+    // Create integrity metadata
+    const metadata = {
+      version: '1.0',
+      timestamp: new Date().toISOString(),
+      hash: integrityHash,
+      size: data.length
+    };
+    const metadataBuffer = Buffer.from(JSON.stringify(metadata), 'utf8');
+    const metadataLength = Buffer.alloc(4);
+    metadataLength.writeUInt32BE(metadataBuffer.length, 0);
+    
+    // Save encrypted file with integrity metadata: [metadata_length][metadata][iv][encrypted_data]
+    const encryptedPath = `${dbPath}.enc`;
+    await fs.writeFile(encryptedPath, Buffer.concat([metadataLength, metadataBuffer, iv, encrypted]));
+    
+    // Remove unencrypted file
+    await fs.remove(dbPath);
+  }
+
+  // SECURITY: Decrypt database file before reading with integrity verification
+  private async decryptDatabaseFile(dbPath: string): Promise<void> {
+    const encryptedPath = `${dbPath}.enc`;
+    if (!await fs.pathExists(encryptedPath)) return;
+    
+    const key = this.generateEncryptionKey();
+    const encryptedFile = await fs.readFile(encryptedPath);
+    
+    try {
+      // Read metadata length
+      const metadataLength = encryptedFile.readUInt32BE(0);
+      
+      // Extract metadata
+      const metadataBuffer = encryptedFile.slice(4, 4 + metadataLength);
+      const metadata = JSON.parse(metadataBuffer.toString('utf8'));
+      
+      // Extract IV and encrypted data
+      const iv = encryptedFile.slice(4 + metadataLength, 4 + metadataLength + 16);
+      const encrypted = encryptedFile.slice(4 + metadataLength + 16);
+      
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      
+      let decrypted = decipher.update(encrypted);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      
+      // SECURITY: Verify integrity before using the data
+      const currentHash = this.calculateIntegrityHash(decrypted);
+      if (currentHash !== metadata.hash) {
+        throw new Error('Database integrity check failed. Data may have been corrupted or tampered with.');
+      }
+      
+      // Verify file size matches
+      if (decrypted.length !== metadata.size) {
+        throw new Error('Database size verification failed. Data corruption detected.');
+      }
+      
+      // Log successful integrity verification (but not the hash for security)
+      console.log(`Database integrity verified. Version: ${metadata.version}, Timestamp: ${metadata.timestamp}`);
+      
+      // Write decrypted file temporarily
+      await fs.writeFile(dbPath, decrypted);
+      
+    } catch (error) {
+      console.error('Database decryption/integrity check failed:', error.message);
+      throw new Error('Failed to decrypt database. Data may be corrupted or tampered with.');
+    }
+  }
+
   private async connectDatabase(): Promise<void> {
     if (this.db) return;
+
+    // SECURITY: Decrypt database file if encrypted version exists
+    await this.decryptDatabaseFile(this.config.dbPath);
 
     return new Promise((resolve, reject) => {
       this.db = new Database(this.config.dbPath, (err) => {
         if (err) reject(err);
         else resolve();
+      });
+    });
+  }
+
+  // SECURITY: Encrypt database when closing connection
+  async close(): Promise<void> {
+    if (!this.db) return;
+    
+    return new Promise((resolve, reject) => {
+      this.db!.close(async (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          // Encrypt the database file after closing
+          try {
+            await this.encryptDatabaseFile(this.config.dbPath);
+            this.db = null;
+            resolve();
+          } catch (encryptErr) {
+            reject(encryptErr);
+          }
+        }
       });
     });
   }

@@ -25,13 +25,150 @@ const stripe = new Stripe(
 // Debug logging
 console.log("Stripe key available:", !!(process.env.STRIPE_SECRET_KEY || functions.config().stripe?.secret_key));
 
-const corsHandler = cors({origin: true});
+// SECURITY: Restrict CORS to specific allowed domains
+const allowedOrigins = [
+  'https://codecontext-memory-pro.web.app',
+  'https://codecontext-memory-pro.firebaseapp.com',
+  'https://codecontextpro.com',
+  'http://localhost:3000', // Development
+  'http://localhost:8080', // Development
+];
+
+const corsHandler = cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature']
+});
+
+// SECURITY: Add security headers to all responses
+function addSecurityHeaders(res: any): void {
+  // Prevent clickjacking attacks
+  res.set('X-Frame-Options', 'DENY');
+  
+  // Prevent MIME type sniffing
+  res.set('X-Content-Type-Options', 'nosniff');
+  
+  // Enable XSS protection
+  res.set('X-XSS-Protection', '1; mode=block');
+  
+  // Content Security Policy
+  res.set('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.gstatic.com; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: https:; " +
+    "connect-src 'self' https://api.stripe.com; " +
+    "frame-src https://js.stripe.com; " +
+    "object-src 'none'; " +
+    "base-uri 'self';"
+  );
+  
+  // Prevent referrer leakage
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Strict Transport Security (HSTS)
+  res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  
+  // Permissions Policy (formerly Feature Policy)
+  res.set('Permissions-Policy', 
+    'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()'
+  );
+}
+
+// SECURITY: Email validation function
+function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
+// SECURITY: Generic error handler to prevent information disclosure
+function handleError(error: any, context: string): {error: string} {
+  // Log detailed error for debugging (server-side only)
+  console.error(`Error in ${context}:`, {
+    message: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString(),
+    context
+  });
+  
+  // Return generic error to client
+  return {error: "An error occurred processing your request"};
+}
+
+// SECURITY: Rate limiting implementation
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+function checkRateLimit(identifier: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitStore.get(identifier);
+  
+  if (!entry || now > entry.resetTime) {
+    // Reset or create new entry
+    rateLimitStore.set(identifier, {
+      count: 1,
+      resetTime: now + windowMs
+    });
+    return true;
+  }
+  
+  if (entry.count >= maxRequests) {
+    return false; // Rate limit exceeded
+  }
+  
+  entry.count++;
+  return true;
+}
+
+function getRateLimitKey(req: any, endpoint: string): string {
+  // Use IP address + endpoint for rate limiting
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  return `${ip}:${endpoint}`;
+}
+
+// SECURITY: JWT token verification for enhanced authentication
+async function verifyAuthToken(authHeader: string): Promise<{uid: string, email: string} | null> {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  
+  const token = authHeader.substring(7);
+  
+  try {
+    // Verify Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    return {
+      uid: decodedToken.uid,
+      email: decodedToken.email || ''
+    };
+  } catch (error) {
+    console.log('Token verification failed:', error.message);
+    return null;
+  }
+}
 
 /**
  * Get current pricing and availability
  */
 export const getPricingHttp = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    // SECURITY: Add security headers
+    addSecurityHeaders(res);
     try {
       const statsDoc = await db.collection("public").doc("stats").get();
       const stats = statsDoc.data() || {
@@ -60,8 +197,7 @@ export const getPricingHttp = functions.https.onRequest((req, res) => {
         },
       });
     } catch (error) {
-      console.error("Error getting pricing:", error);
-      res.status(500).json({error: "Failed to get pricing"});
+      res.status(500).json(handleError(error, "getPricing"));
     }
   });
 });
@@ -71,10 +207,20 @@ export const getPricingHttp = functions.https.onRequest((req, res) => {
  */
 export const createCheckout = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    // SECURITY: Add security headers
+    addSecurityHeaders(res);
+    
     console.log("createCheckout function started with:", req.body);
     
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    // SECURITY: Rate limiting - 5 requests per 15 minutes per IP
+    const rateLimitKey = getRateLimitKey(req, 'createCheckout');
+    if (!checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000)) {
+      res.status(429).json({error: "Too many requests. Please try again later."});
       return;
     }
 
@@ -87,6 +233,12 @@ export const createCheckout = functions.https.onRequest((req, res) => {
         return;
       }
 
+      // SECURITY: Validate email format
+      if (!validateEmail(email)) {
+        res.status(400).json({error: "Invalid email format"});
+        return;
+      }
+
       // Get current pricing
       const statsDoc = await db.collection("public").doc("stats").get();
       const stats = statsDoc.data() || {earlyAdoptersSold: 0, earlyAdopterLimit: 10000};
@@ -94,7 +246,7 @@ export const createCheckout = functions.https.onRequest((req, res) => {
       let priceData;
       if (tier === "test") {
         priceData = {
-          price: "price_1Rm1UmELGHd3NbdJ6rwCIMx3", // $7.99 Test
+          price: process.env.STRIPE_PRICE_TEST || functions.config().stripe?.price_test || "price_1Rm1UmELGHd3NbdJ6rwCIMx3",
         };
       } else if (tier === "early_adopter") {
         const remaining = Math.max(0, stats.earlyAdopterLimit - stats.earlyAdoptersSold);
@@ -103,11 +255,11 @@ export const createCheckout = functions.https.onRequest((req, res) => {
           return;
         }
         priceData = {
-          price: "price_1Rlu15ELGHd3NbdJ2oxuZF26", // $99 Early Adopter Live
+          price: process.env.STRIPE_PRICE_EARLY_ADOPTER || functions.config().stripe?.price_early_adopter || "price_1Rlu15ELGHd3NbdJ2oxuZF26",
         };
       } else {
         priceData = {
-          price: "price_1RluloELGHd3NbdJdakkqP7J", // $199 Standard Live
+          price: process.env.STRIPE_PRICE_STANDARD || functions.config().stripe?.price_standard || "price_1RluloELGHd3NbdJdakkqP7J",
         };
       }
 
@@ -133,19 +285,7 @@ export const createCheckout = functions.https.onRequest((req, res) => {
 
       res.json({sessionId: session.id, url: session.url});
     } catch (error: any) {
-      // Log the detailed error with a structured object for Cloud Logging
-      console.error("Stripe Checkout Session Error:", {
-        message: error.message,
-        statusCode: error.statusCode, // For Stripe API errors
-        type: error.type,
-        code: error.code,
-        rawError: error // Log the entire error object for full details
-      });
-      
-      res.status(500).json({
-        error: "Failed to create checkout session",
-        details: error.message || "Unknown error"
-      });
+      res.status(500).json(handleError(error, "createCheckout"));
     }
   });
 });
@@ -156,6 +296,9 @@ export const createCheckout = functions.https.onRequest((req, res) => {
 export const stripeWebhook = functions.runWith({
   memory: "256MB"
 }).https.onRequest(async (req, res) => {
+  // SECURITY: Add security headers  
+  addSecurityHeaders(res);
+  
   const sig = req.headers["stripe-signature"] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret;
   
@@ -196,8 +339,7 @@ export const stripeWebhook = functions.runWith({
 
     res.json({received: true});
   } catch (error) {
-    console.error("Webhook error:", error);
-    res.status(500).json({error: "Webhook processing failed"});
+    res.status(500).json(handleError(error, "stripeWebhook"));
   }
 });
 
@@ -322,8 +464,18 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
  */
 export const validateLicense = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    // SECURITY: Add security headers
+    addSecurityHeaders(res);
+    
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    // SECURITY: Rate limiting - 20 requests per 5 minutes per IP
+    const rateLimitKey = getRateLimitKey(req, 'validateLicense');
+    if (!checkRateLimit(rateLimitKey, 20, 5 * 60 * 1000)) {
+      res.status(429).json({error: "Too many requests. Please try again later."});
       return;
     }
 
@@ -332,6 +484,12 @@ export const validateLicense = functions.https.onRequest((req, res) => {
 
       if (!email || !licenseKey) {
         res.status(400).json({error: "Email and license key required"});
+        return;
+      }
+
+      // SECURITY: Validate email format  
+      if (!validateEmail(email)) {
+        res.status(400).json({error: "Invalid email format"});
         return;
       }
 
@@ -354,7 +512,18 @@ export const validateLicense = functions.https.onRequest((req, res) => {
         return;
       }
 
-      // Return license data (without sensitive info)
+      // SECURITY: Generate unique encryption key for this user
+      if (!process.env.ENCRYPTION_MASTER_KEY) {
+        console.error('SECURITY ERROR: ENCRYPTION_MASTER_KEY environment variable not set');
+        res.status(500).json({error: 'Server configuration error'});
+        return;
+      }
+      
+      const userEncryptionKey = createHash('sha256')
+        .update(license.id + license.email + process.env.ENCRYPTION_MASTER_KEY)
+        .digest('hex');
+
+      // Return license data with secure encryption key
       res.json({
         valid: true,
         license: {
@@ -365,11 +534,11 @@ export const validateLicense = functions.https.onRequest((req, res) => {
           features: license.features,
           maxProjects: license.maxProjects,
           createdAt: license.createdAt,
+          apiKey: userEncryptionKey, // Unique encryption key per user
         },
       });
     } catch (error) {
-      console.error("Error validating license:", error);
-      res.status(500).json({error: "Failed to validate license"});
+      res.status(500).json(handleError(error, "validateLicense"));
     }
   });
 });
@@ -379,6 +548,9 @@ export const validateLicense = functions.https.onRequest((req, res) => {
  */
 export const reportUsage = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    // SECURITY: Add security headers
+    addSecurityHeaders(res);
+    
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
       return;
@@ -409,45 +581,73 @@ export const reportUsage = functions.https.onRequest((req, res) => {
 
       res.json({success: true});
     } catch (error) {
-      console.error("Error reporting usage:", error);
-      res.status(500).json({error: "Failed to report usage"});
+      res.status(500).json(handleError(error, "reportUsage"));
     }
   });
 });
 
 /**
- * Initialize database with default stats (admin function)
+ * SECURITY: initializeDatabase function REMOVED
+ * 
+ * This function was publicly accessible and could reset sales counters.
+ * Database initialization should be done manually via Firebase CLI:
+ * 
+ * firebase firestore:delete --all-collections
+ * firebase functions:shell
+ * > initializeStatsManually()
+ * 
+ * Or use Firebase Console to manually create:
+ * Collection: public
+ * Document: stats
+ * Fields: { earlyAdoptersSold: 0, earlyAdopterLimit: 10000 }
  */
-export const initializeDatabase = functions.https.onRequest(async (req, res) => {
-  corsHandler(req, res, async () => {
-    try {
-      // Initialize stats document
-      await db.collection("public").doc("stats").set({
-        earlyAdoptersSold: 0,
-        earlyAdopterLimit: 10000,
-        initializedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
 
-      res.json({
-        success: true,
-        message: "Database initialized with default stats",
-        stats: {
-          earlyAdoptersSold: 0,
-          earlyAdopterLimit: 10000
-        }
-      });
-    } catch (error) {
-      console.error("Database initialization error:", error);
-      res.status(500).json({error: "Failed to initialize database"});
-    }
+/**
+ * SECURE CODE EXECUTION ENDPOINT - DISABLED FOR SECURITY
+ * 
+ * This endpoint has been disabled due to incomplete security implementation.
+ * To re-enable, implement proper Docker-based sandboxing with:
+ * - Container isolation with resource limits
+ * - Network namespace isolation  
+ * - Filesystem isolation (read-only, minimal)
+ * - User namespace isolation (non-root)
+ * - Seccomp profiles to block system calls
+ * - AppArmor/SELinux policies
+ * - Time limits with SIGKILL enforcement
+ */
+export const validateExecution = functions.runWith({
+  timeoutSeconds: 5,
+  memory: '128MB'
+}).https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    // SECURITY: Add security headers
+    addSecurityHeaders(res);
+    
+    // SECURITY: Endpoint disabled until proper sandboxing is implemented
+    res.status(503).json({
+      error: 'Code execution service temporarily unavailable',
+      message: 'This feature is being enhanced with additional security measures',
+      documentation: 'Contact support for alternative code validation options'
+    });
   });
 });
+
+/**
+ * SECURE EXECUTION FUNCTION REMOVED
+ * 
+ * The simulateSecureExecution function has been removed as the validateExecution 
+ * endpoint is now disabled for security reasons. When re-implementing this feature,
+ * use proper Docker-based sandboxing with complete isolation.
+ */
 
 /**
  * Get license key from Stripe session ID
  */
 export const getLicenseKey = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    // SECURITY: Add security headers
+    addSecurityHeaders(res);
+    
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
       return;
@@ -497,8 +697,7 @@ export const getLicenseKey = functions.https.onRequest((req, res) => {
       });
 
     } catch (error) {
-      console.error("Error fetching license key:", error);
-      res.status(500).json({error: "Failed to fetch license key"});
+      res.status(500).json(handleError(error, "getLicenseKey"));
     }
   });
 });
@@ -509,8 +708,18 @@ export const getLicenseKey = functions.https.onRequest((req, res) => {
  */
 export const validateUsage = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    // SECURITY: Add security headers
+    addSecurityHeaders(res);
+    
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    // SECURITY: Rate limiting - 100 requests per 5 minutes per IP (for active usage)
+    const rateLimitKey = getRateLimitKey(req, 'validateUsage');
+    if (!checkRateLimit(rateLimitKey, 100, 5 * 60 * 1000)) {
+      res.status(429).json({error: "Too many requests. Please try again later."});
       return;
     }
 
@@ -519,6 +728,26 @@ export const validateUsage = functions.https.onRequest((req, res) => {
 
       if (!licenseKey || !operation || !email) {
         res.status(400).json({error: "License key, operation, and email required"});
+        return;
+      }
+
+      // SECURITY: Validate email format
+      if (!validateEmail(email)) {
+        res.status(400).json({error: "Invalid email format"});
+        return;
+      }
+
+      // SECURITY: Enhanced authentication with JWT token verification
+      const authHeader = req.headers.authorization;
+      const authResult = await verifyAuthToken(authHeader || '');
+      if (!authResult) {
+        res.status(401).json({error: "Valid authentication token required"});
+        return;
+      }
+
+      // Verify the authenticated user matches the request email
+      if (authResult.email !== email) {
+        res.status(403).json({error: "Authentication mismatch"});
         return;
       }
 
@@ -592,8 +821,7 @@ export const validateUsage = functions.https.onRequest((req, res) => {
       });
 
     } catch (error) {
-      console.error("Usage validation error:", error);
-      res.status(500).json({error: "Failed to validate usage"});
+      res.status(500).json(handleError(error, "validateUsage"));
     }
   });
 });
@@ -603,6 +831,9 @@ export const validateUsage = functions.https.onRequest((req, res) => {
  */
 export const getAuthToken = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
+    // SECURITY: Add security headers
+    addSecurityHeaders(res);
+    
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
       return;
@@ -639,8 +870,7 @@ export const getAuthToken = functions.https.onRequest((req, res) => {
       });
 
     } catch (error) {
-      console.error("Error generating auth token:", error);
-      res.status(500).json({error: "Failed to generate auth token"});
+      res.status(500).json(handleError(error, "getAuthToken"));
     }
   });
 });

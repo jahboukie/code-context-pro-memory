@@ -229,9 +229,19 @@ You're part of the AI cognitive revolution! 🚀
   }
 
   private encryptLicense(license: License): string {
-    // Simple encryption for local storage
+    // SECURITY: Generate machine-specific encryption key
     const crypto = require('crypto');
-    const key = crypto.scryptSync('codecontext-secret', 'salt', 32);
+    const os = require('os');
+    
+    // Create machine-specific key using hostname, platform, and user info
+    const machineId = crypto.createHash('sha256')
+      .update(os.hostname() + os.platform() + os.userInfo().username)
+      .digest('hex');
+    
+    // Use machine-specific salt and derived key  
+    const salt = crypto.createHash('sha256').update(machineId + 'codecontext').digest('hex').slice(0, 32);
+    const key = crypto.scryptSync(machineId, salt, 32);
+    
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
     let encrypted = cipher.update(JSON.stringify(license), 'utf8', 'hex');
@@ -240,9 +250,19 @@ You're part of the AI cognitive revolution! 🚀
   }
 
   private decryptLicense(encrypted: string): License {
-    // Simple decryption for local storage
+    // SECURITY: Use machine-specific encryption key
     const crypto = require('crypto');
-    const key = crypto.scryptSync('codecontext-secret', 'salt', 32);
+    const os = require('os');
+    
+    // Recreate the same machine-specific key
+    const machineId = crypto.createHash('sha256')
+      .update(os.hostname() + os.platform() + os.userInfo().username)
+      .digest('hex');
+    
+    // Use same machine-specific salt and derived key
+    const salt = crypto.createHash('sha256').update(machineId + 'codecontext').digest('hex').slice(0, 32);
+    const key = crypto.scryptSync(machineId, salt, 32);
+    
     const [ivHex, encryptedData] = encrypted.split(':');
     const iv = Buffer.from(ivHex, 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);

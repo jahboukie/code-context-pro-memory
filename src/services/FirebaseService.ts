@@ -36,7 +36,11 @@ export class FirebaseService {
   private apiKey?: string;
 
   constructor() {
-    this.baseUrl = process.env.CODECONTEXT_API_URL || 'https://us-central1-codecontext-memory-pro.cloudfunctions.net';
+    // SECURITY: Use environment variable for Firebase Functions URL, no hardcoded fallback
+    this.baseUrl = process.env.CODECONTEXT_API_URL;
+    if (!this.baseUrl) {
+      throw new Error('CODECONTEXT_API_URL environment variable must be set. Example: https://us-central1-your-project.cloudfunctions.net');
+    }
   }
 
   async authenticate(email: string, licenseKey: string): Promise<License> {
@@ -219,8 +223,11 @@ export class FirebaseService {
 
   private encryptMemoryData(data: any): string {
     // Encrypt sensitive memory data before sending to cloud
-    const key = this.apiKey || 'default-key';
-    const keyBuffer = crypto.createHash('sha256').update(key).digest();
+    if (!this.apiKey) {
+      throw new Error('SECURITY ERROR: No encryption key available. User must be authenticated first.');
+    }
+    
+    const keyBuffer = crypto.createHash('sha256').update(this.apiKey).digest();
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv('aes-256-cbc', keyBuffer, iv);
     let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
@@ -230,8 +237,11 @@ export class FirebaseService {
 
   private decryptMemoryData(encryptedData: string): any {
     // Decrypt memory data from cloud
-    const key = this.apiKey || 'default-key';
-    const keyBuffer = crypto.createHash('sha256').update(key).digest();
+    if (!this.apiKey) {
+      throw new Error('SECURITY ERROR: No encryption key available. User must be authenticated first.');
+    }
+    
+    const keyBuffer = crypto.createHash('sha256').update(this.apiKey).digest();
     const [ivHex, encrypted] = encryptedData.split(':');
     const iv = Buffer.from(ivHex, 'hex');
     const decipher = crypto.createDecipheriv('aes-256-cbc', keyBuffer, iv);
@@ -242,8 +252,11 @@ export class FirebaseService {
 
   private encryptCode(code: string): string {
     // Encrypt code before sending for execution
-    const key = this.apiKey || 'default-key';
-    const keyBuffer = crypto.createHash('sha256').update(key).digest();
+    if (!this.apiKey) {
+      throw new Error('SECURITY ERROR: No encryption key available. User must be authenticated first.');
+    }
+    
+    const keyBuffer = crypto.createHash('sha256').update(this.apiKey).digest();
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv('aes-256-cbc', keyBuffer, iv);
     let encrypted = cipher.update(code, 'utf8', 'hex');

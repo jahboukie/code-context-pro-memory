@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CodeContext Memory Pro - AI Memory Revolution</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; line-height: 1.6; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+    
+    /* Hero Section */
+    .hero { 
+      background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e); 
+      padding: 4rem 0; 
+      text-align: center; 
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(0, 245, 255, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #00f5ff, #ff0080);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 245, 255, 0.3);
+    }
+    .hero-title { 
+      font-size: 4rem; 
+      font-weight: 800; 
+      margin-bottom: 1rem; 
+      background: linear-gradient(135deg, #00f5ff, #ff0080); 
+      -webkit-background-clip: text; 
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+    }
+    .hero-subtitle { 
+      font-size: 1.8rem; 
+      margin-bottom: 3rem; 
+      color: #ccc; 
+      font-weight: 500;
+    }
+    
+    /* Problem Statement */
+    .problem-statement {
+      background: rgba(255, 0, 128, 0.1);
+      border: 1px solid rgba(255, 0, 128, 0.3);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 3rem 0;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .problem-item {
+      display: block;
+      margin-bottom: 1rem;
+    }
+    .problem-item:last-child {
+      margin-bottom: 0;
+    }
+    .quote {
+      font-size: 1.3rem;
+      color: #ff6b9d;
+      font-style: italic;
+      font-weight: 500;
+    }
+    
+    /* Pain Point */
+    .pain-point {
+      background: rgba(255, 69, 0, 0.1);
+      border: 1px solid rgba(255, 69, 0, 0.3);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 3rem 0;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .pain-point h3 {
+      color: #ff4500;
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin: 0;
+      line-height: 1.4;
+    }
+    
+    /* Solution Box */
+    .solution-box {
+      background: linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(255, 0, 128, 0.1));
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 16px;
+      padding: 3rem;
+      margin: 3rem 0;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 8px 32px rgba(0, 245, 255, 0.2);
+    }
+    .solution-box h2 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #00f5ff;
+    }
+    .solution-box p {
+      font-size: 1.4rem;
+      margin-bottom: 2rem;
+      color: #fff;
+    }
+    .solution-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .feature {
+      background: rgba(0, 245, 255, 0.1);
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #00f5ff;
+    }
+    
+    /* ROI Section */
+    .roi-section {
+      background: linear-gradient(135deg, #1a1a2e, #0a0a0a);
+      padding: 4rem 0;
+      text-align: center;
+    }
+    .roi-section h2 {
+      font-size: 3rem;
+      margin-bottom: 3rem;
+      color: #00ff88;
+    }
+    .roi-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      max-width: 1000px;
+      margin: 0 auto 3rem auto;
+      flex-wrap: wrap;
+    }
+    .roi-item {
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      border-radius: 12px;
+      padding: 2rem;
+      flex: 1;
+      min-width: 300px;
+    }
+    .roi-item h3 {
+      color: #00ff88;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+    .roi-item p {
+      font-size: 1.1rem;
+      color: #ccc;
+    }
+    .cost {
+      color: #ff4500;
+      font-weight: bold;
+      font-size: 1.3rem;
+    }
+    .savings {
+      color: #00ff88;
+      font-weight: bold;
+      font-size: 1.3rem;
+    }
+    .roi-arrow {
+      font-size: 3rem;
+      color: #00f5ff;
+      font-weight: bold;
+    }
+    .roi-result {
+      background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(0, 255, 136, 0.2));
+      border: 2px solid rgba(0, 245, 255, 0.5);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .roi-result h2 {
+      color: #fff;
+      font-size: 2.5rem;
+      margin: 0;
+      text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+    }
+    
+    /* Pricing Section */
+    .pricing-section { padding: 4rem 0; text-align: center; }
+    .pricing-hero {
+      margin-bottom: 3rem;
+    }
+    .price-main {
+      font-size: 4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #00f5ff, #ff0080);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+    .price-subtitle {
+      font-size: 1.5rem;
+      color: #00f5ff;
+      margin-bottom: 0.5rem;
+    }
+    .price-later {
+      font-size: 1.2rem;
+      color: #ff4500;
+    }
+    .pricing-section h2 { font-size: 2.5rem; margin-bottom: 3rem; color: #00f5ff; }
+    .pricing-cards { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+    .card { background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 40px; width: 350px; text-align: left; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4); transition: transform 0.3s ease; }
+    .card:hover { transform: translateY(-10px); }
+    .card h3 { font-size: 2rem; margin-bottom: 1rem; color: #ff0080; }
+    .card .price { font-size: 3rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .card .price span { font-size: 1.5rem; font-weight: 400; opacity: 0.7; }
+    .card ul { list-style: none; margin-bottom: 2rem; }
+    .card ul li { margin-bottom: 1rem; font-size: 1.1rem; }
+    .card ul li::before { content: '✓'; color: #00f5ff; margin-right: 10px; }
+    .card button { background: linear-gradient(135deg, #00f5ff, #ff0080); border: none; padding: 15px 30px; border-radius: 8px; color: #fff; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: opacity 0.3s ease; width: 100%; }
+    .card button:hover { opacity: 0.9; }
+    .card button:disabled { background: #555; cursor: not-allowed; }
+    
+    .loading-message { text-align: center; margin-top: 30px; }
+    .error-message { text-align: center; margin-top: 30px; color: #ff4500; display: none; }
+    .error-message p { margin-bottom: 10px; }
+
+    .faq-section { padding: 4rem 0; text-align: center; background: #111; }
+    .faq-section h2 { font-size: 2.5rem; margin-bottom: 3rem; color: #00f5ff; }
+    .faq-item { background: #1a1a2e; border-radius: 8px; margin-bottom: 20px; text-align: left; overflow: hidden; }
+    .faq-question { padding: 20px; font-size: 1.2rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #1a1a2e; color: #fff; border: none; width: 100%; text-align: left; }
+    .faq-question .arrow { transition: transform 0.3s ease; }
+    .faq-question.active .arrow { transform: rotate(180deg); }
+    .faq-answer { padding: 0 20px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, padding 0.3s ease-out; background: #222; }
+    .faq-answer p { padding-bottom: 20px; color: #ccc; }
+    .faq-answer.active { max-height: 200px; /* Adjust as needed */ padding-top: 20px; }
+
+    /* Competition Section */
+    .competition-section {
+      background: linear-gradient(135deg, #16213e, #1a1a2e);
+      padding: 4rem 0;
+      text-align: center;
+    }
+    .competition-section h2 {
+      font-size: 3rem;
+      margin-bottom: 3rem;
+      color: #ff0080;
+    }
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .competitor {
+      background: rgba(255, 0, 128, 0.1);
+      border: 1px solid rgba(255, 0, 128, 0.3);
+      border-radius: 12px;
+      padding: 2rem;
+      transition: transform 0.3s ease;
+    }
+    .competitor:hover {
+      transform: translateY(-5px);
+    }
+    .competitor.winner {
+      background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(0, 255, 136, 0.2));
+      border: 2px solid rgba(0, 245, 255, 0.5);
+      transform: scale(1.05);
+      box-shadow: 0 8px 32px rgba(0, 245, 255, 0.3);
+    }
+    .competitor-name {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+    .competitor-price {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #00f5ff;
+    }
+    .competitor-issue {
+      color: #ff4500;
+      font-style: italic;
+    }
+    .competitor-feature {
+      color: #00ff88;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* Final CTA Section */
+    .final-cta {
+      background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
+      padding: 4rem 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .final-cta::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 0, 128, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .final-cta h2 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #ff0080, #00f5ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .final-cta p {
+      font-size: 1.5rem;
+      color: #ccc;
+      margin-bottom: 3rem;
+    }
+    .cta-buttons {
+      margin-bottom: 3rem;
+    }
+    .cta-primary {
+      background: linear-gradient(135deg, #00f5ff, #ff0080);
+      border: none;
+      padding: 1.5rem 3rem;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 8px 32px rgba(0, 245, 255, 0.3);
+      margin-bottom: 1rem;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      max-width: 500px;
+    }
+    .cta-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0, 245, 255, 0.4);
+    }
+    .urgency {
+      color: #00ff88;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 1rem 0;
+    }
+    .price-warning {
+      color: #ff4500;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+    .launch-teaser {
+      background: rgba(255, 0, 128, 0.1);
+      border: 1px solid rgba(255, 0, 128, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .launch-teaser h3 {
+      color: #ff0080;
+      margin-bottom: 1rem;
+      font-size: 2rem;
+    }
+    .launch-teaser p {
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+
+    .footer { background: #0a0a0a; color: #bbb; text-align: center; padding: 2rem 0; font-size: 0.9rem; }
+    .footer p { margin-bottom: 0.5rem; }
+    .footer a { color: #00f5ff; text-decoration: none; }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .hero-title { font-size: 2.5rem; }
+      .hero-subtitle { font-size: 1.3rem; }
+      .quote { font-size: 1.1rem; }
+      .solution-box { padding: 2rem; }
+      .solution-box h2 { font-size: 2rem; }
+      .roi-box { flex-direction: column; }
+      .roi-arrow { transform: rotate(90deg); }
+      .price-main { font-size: 2.5rem; }
+      .final-cta h2 { font-size: 2.5rem; }
+      .cta-primary { font-size: 1.1rem; padding: 1rem 2rem; }
+      .comparison-grid { grid-template-columns: 1fr; }
+      .pricing-cards { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Hero Section -->
+  <div class="hero">
+    <div class="container">
+      <div class="hero-badge">🧠 AI Memory Revolution</div>
+      <h1 class="hero-title">Stop Paying for AI Amnesia</h1>
+      <p class="hero-subtitle">Your AI Assistant Has Goldfish Memory. We Fix That.</p>
+      
+      <div class="problem-statement">
+        <div class="problem-item">
+          <span class="quote">"Explain your project architecture... again."</span>
+        </div>
+        <div class="problem-item">
+          <span class="quote">"What was that bug fix from yesterday?"</span>
+        </div>
+        <div class="problem-item">
+          <span class="quote">"Why did we choose React over Vue... for the 20th time?"</span>
+        </div>
+      </div>
+      
+      <div class="pain-point">
+        <h3>You're spending 2+ hours daily re-explaining the same context to amnesia-struck AI assistants.</h3>
+      </div>
+      
+      <div class="solution-box">
+        <h2>💡 The Solution: Persistent AI Memory</h2>
+        <p>CodeContext Memory Pro gives your AI assistant <strong>INFINITE MEMORY</strong></p>
+        <div class="solution-features">
+          <div class="feature">✅ Remember Everything</div>
+          <div class="feature">✅ Persistent Memory</div>
+          <div class="feature">✅ Cross-Session Context</div>
+          <div class="feature">✅ 10x Productivity</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROI Section -->
+  <div class="roi-section">
+    <div class="container">
+      <h2>💰 ROI Calculator</h2>
+      <div class="roi-box">
+        <div class="roi-item">
+          <h3>Current Cost of AI Amnesia:</h3>
+          <p>30 minutes daily re-explaining context = <span class="cost">$50/day lost productivity</span></p>
+        </div>
+        <div class="roi-arrow">→</div>
+        <div class="roi-item">
+          <h3>With Memory Pro:</h3>
+          <p><span class="savings">$99/month saves you $1,500/month</span> in wasted time</p>
+        </div>
+      </div>
+      <div class="roi-result">
+        <h2>This pays for itself in 2 days.</h2>
+      </div>
+    </div>
+  </div>
+
+  <div class="pricing-section">
+    <div class="container">
+      <h2>🚀 Early Adopter Special</h2>
+      <div class="pricing-hero">
+        <div class="price-main">$99/month FOREVER</div>
+        <div class="price-subtitle">First 10,000 licenses only</div>
+        <div class="price-later">After 10,000 sold: $199/month</div>
+      </div>
+      
+      <div id="early-adopter-counter" style="text-align: center; margin: 2rem 0;">
+        <div style="font-size: 3rem; font-weight: bold; color: #ff0080; margin-bottom: 0.5rem;" id="remaining-count">Loading...</div>
+        <div style="font-size: 1.2rem; color: #ccc;">early adopter licenses remaining</div>
+      </div>
+      
+      <div class="pricing-cards">
+        <div class="card">
+          <h3>Test</h3>
+          <p class="price">$7.99<span>/month</span></p>
+          <ul>
+            <li>🧠 10 Memory Operations/Month</li>
+            <li>📝 10 Remember Commands</li>
+            <li>🔍 20 Recall Searches</li>
+            <li>📊 5 Project Scans</li>
+            <li>📤 2 Memory Exports</li>
+            <li>🔧 VS Code Integration</li>
+            <li>📁 Single Project Support</li>
+          </ul>
+          <button type="button" id="test-btn">Loading...</button>
+        </div>
+
+        <div class="card">
+          <h3>Early Adopter</h3>
+          <p class="price">$99<span>/month</span></p>
+          <ul>
+            <li>🧠 1,000 Memory Operations/Month</li>
+            <li>📝 1,000 Remember Commands</li>
+            <li>🔍 2,000 Recall Searches</li>
+            <li>📊 100 Project Scans</li>
+            <li>📤 50 Memory Exports</li>
+            <li>☁️ Cloud Sync Across Devices</li>
+            <li>🔧 VS Code Integration</li>
+            <li>📁 Multi-Project Support</li>
+            <li>🎯 Priority Support</li>
+            <li>💎 Founding Member Status</li>
+            <li>🔒 Price Never Increases</li>
+          </ul>
+          <button type="button" id="early-adopter-btn">Loading...</button>
+        </div>
+
+        <div class="card">
+          <h3>Standard</h3>
+          <p class="price">$199<span>/month</span></p>
+          <p style="color: #ccc; margin-bottom: 1.5rem;">Available after specials sell out</p>
+          <ul>
+            <li>🧠 500 Memory Operations/Month</li>
+            <li>📝 500 Remember Commands</li>
+            <li>🔍 1,000 Recall Searches</li>
+            <li>📊 50 Project Scans</li>
+            <li>📤 20 Memory Exports</li>
+            <li>☁️ Cloud Sync Across Devices</li>
+            <li>🔧 VS Code Integration</li>
+            <li>📁 Multi-Project Support</li>
+            <li>🎯 Priority Support</li>
+          </ul>
+          <button type="button" id="standard-btn">Loading...</button>
+        </div>
+      </div>
+      <div id="loading" class="loading-message">Loading pricing...</div>
+      <div id="error-message" class="error-message">
+        <p id="error-text"></p>
+        <button type="button" onclick="hideError()">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-item">
+        <button type="button" class="faq-question">What is CodeContext Memory Pro?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>It's an AI-powered tool that provides persistent memory for your coding projects. It remembers your codebase, discussions, and decisions across sessions and projects, acting as a smart, ever-present assistant.</p></div>
+      </div>
+      <div class="faq-item">
+        <button type="button" class="faq-question">How does it work?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>It integrates with your development environment, indexing your code and conversations. Using advanced AI, it creates a searchable, contextual memory that you can query at any time, even across different projects.</p></div>
+      </div>
+      <div class="faq-item">
+        <button type="button" class="faq-question">Is my code secure?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>Yes, security is our top priority. Your code and data are encrypted both in transit and at rest. We adhere to industry best practices for data privacy and security.</p></div>
+      </div>
+      <div class="faq-item">
+        <button type="button" class="faq-question">What's the difference between Early Adopter and Standard?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>Early Adopter tier offers a significant discount for a limited number of users, along with higher usage limits and priority support, as a thank you for joining us early. Standard is the regular pricing with generous limits and standard support.</p></div>
+      </div>
+      <div class="faq-item">
+        <button type="button" class="faq-question">Can I cancel my subscription?<span class="arrow">▼</span></button>
+        <div class="faq-answer"><p>Yes, you can cancel your subscription at any time through your account portal. Your access will continue until the end of your current billing period.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Competition Section -->
+  <div class="competition-section">
+    <div class="container">
+      <h2>💭 Compare the Competition</h2>
+      <div class="comparison-grid">
+        <div class="competitor">
+          <div class="competitor-name">❌ ChatGPT Pro</div>
+          <div class="competitor-price">$20/month</div>
+          <div class="competitor-issue">(forgets everything)</div>
+        </div>
+        <div class="competitor">
+          <div class="competitor-name">❌ Claude Pro</div>
+          <div class="competitor-price">$20/month</div>
+          <div class="competitor-issue">(goldfish memory)</div>
+        </div>
+        <div class="competitor">
+          <div class="competitor-name">❌ GitHub Copilot</div>
+          <div class="competitor-price">$10/month</div>
+          <div class="competitor-issue">(no context)</div>
+        </div>
+        <div class="competitor winner">
+          <div class="competitor-name">✅ CodeContext Memory Pro</div>
+          <div class="competitor-price">$99/month</div>
+          <div class="competitor-feature">(INFINITE MEMORY)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="docs-section" style="padding: 4rem 0; background: #111;">
+    <div class="container">
+      <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: #00f5ff; text-align: center;">🛠️ Getting Started</h2>
+      <p style="text-align: center; font-size: 1.3rem; color: #ccc; margin-bottom: 3rem;">60 seconds to AI enlightenment</p>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">📦 Installation</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Step 1: Install the memory revolution</div>
+            <div style="color: #00f5ff;">npm install -g codecontext-memory</div>
+            <br>
+            <div style="color: #6e7681;"># Step 2: Activate with your license key</div>
+            <div style="color: #00f5ff;">codecontext activate your@email.com LICENSE-KEY</div>
+            <br>
+            <div style="color: #6e7681;"># Step 3: Initialize AI memory</div>
+            <div style="color: #00f5ff;">codecontext init</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">🚀 Project Analysis</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Scan and analyze your project</div>
+            <div style="color: #00f5ff;">codecontext scan --deep</div>
+            <br>
+            <div style="color: #6e7681;"># Check memory status</div>
+            <div style="color: #00f5ff;">codecontext status</div>
+          </div>
+          <div style="background: #1a2e1a; border: 1px solid #00ff88; border-radius: 6px; padding: 1rem; margin: 1rem 0;">
+            <div style="color: #00ff88; font-weight: 600; margin-bottom: 0.5rem;">✅ AI learns your entire codebase</div>
+            <div style="font-size: 0.9rem;">Patterns • Architecture • Dependencies • Conventions</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">🧠 Memory Commands</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Store architectural decisions</div>
+            <div style="color: #00f5ff;">codecontext remember</div>
+            <div style="color: #a5d6ff;">"React + TypeScript chosen for frontend"</div>
+            <br>
+            <div style="color: #6e7681;"># Instant context recall</div>
+            <div style="color: #00f5ff;">codecontext recall "architecture"</div>
+            <div style="color: #00ff88;"># ✅ Found: React + TypeScript...</div>
+          </div>
+          <div style="background: #1a2e1a; border: 1px solid #00ff88; border-radius: 6px; padding: 1rem; margin: 1rem 0;">
+            <div style="color: #00ff88; font-weight: 600; margin-bottom: 0.5rem;">⚡ Never explain context again</div>
+            <div style="font-size: 0.9rem;">AI remembers every decision, bug fix, and pattern</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">📊 Project Management</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Check status</div>
+            <div style="color: #00f5ff;">codecontext status</div>
+            <br>
+            <div style="color: #6e7681;"># Export memories</div>
+            <div style="color: #00f5ff;">codecontext export --format json</div>
+          </div>
+        </div>
+
+        <div style="background: #1a1a2e; border: 1px solid #16213e; border-radius: 12px; padding: 2rem;">
+          <h3 style="color: #ff0080; margin-bottom: 1rem; font-size: 1.5rem;">🔧 VS Code Integration</h3>
+          <div style="background: #0d1117; border: 1px solid #333; border-radius: 6px; padding: 1rem; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 1rem 0;">
+            <div style="color: #6e7681;"># Set up VS Code integration</div>
+            <div style="color: #00f5ff;">codecontext vscode</div>
+            <br>
+            <div style="color: #6e7681;"># Restart VS Code to activate</div>
+          </div>
+          <div style="background: #1a2e1a; border: 1px solid #00ff88; border-radius: 6px; padding: 1rem; margin: 1rem 0;">
+            <div style="color: #00ff88; font-weight: 600; margin-bottom: 0.5rem;">✅ No Extension Required</div>
+            <div style="font-size: 0.9rem;">Memory-aware suggestions • Persistent context • Instant project understanding</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 3rem;">
+        <div style="background: #0a0a0a; border: 2px solid #00f5ff; border-radius: 8px; padding: 1rem; margin-bottom: 2rem;">
+          <div style="color: #00f5ff; font-weight: 600; margin-bottom: 0.5rem;">💡 No extension required • Works with any AI • Instant setup</div>
+        </div>
+        <a href="/docs" style="background: linear-gradient(135deg, #00f5ff, #ff0080); color: #fff; text-decoration: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1.1rem; font-weight: 600; display: inline-block;">📚 View Full Documentation</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Final CTA Section -->
+  <div class="final-cta">
+    <div class="container">
+      <h2>🔥 Ready to Stop AI Amnesia Forever?</h2>
+      <p>Join the memory revolution. Your productivity upgrade starts now.</p>
+      <div class="cta-buttons">
+        <button type="button" class="cta-primary" onclick="purchaseLicense('early_adopter')">Get Early Adopter License - $99/month FOREVER</button>
+        <div class="urgency">⚡ Limited Time: First 10,000 get founding member pricing</div>
+        <div class="price-warning">📈 After that: $199/month standard pricing</div>
+      </div>
+      <div class="launch-teaser">
+        <h3>🧠 Join the Memory Revolution</h3>
+        <p><strong>Tomorrow on Hacker News:</strong> <em>"I got tired of explaining my project to AI assistants 50+ times"</em></p>
+        <p><strong>Be ready.</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <p>&copy; 2025 CodeContext Memory Pro. All rights reserved.</p>
+      <p><a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+    </div>
+  </div>
+
+  <!-- Email Input Modal -->
+  <div id="email-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🚀 Complete Your Purchase</h3>
+        <span class="close" onclick="closeEmailModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Enter your email address to proceed with your license purchase:</p>
+        <div class="input-group">
+          <label for="email-input">Email Address:</label>
+          <input type="email" id="email-input" placeholder="your@email.com" autocomplete="email" required>
+          <div id="email-error" class="error-message"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeEmailModal()">Cancel</button>
+        <button type="button" class="btn-primary" onclick="proceedWithEmail()">Continue to Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 0;
+      border: none;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: modalAppear 0.3s ease-out;
+    }
+
+    @keyframes modalAppear {
+      from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-header {
+      padding: 20px 24px 0 24px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: #333;
+      font-size: 1.4em;
+    }
+
+    .close {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #000;
+      text-decoration: none;
+    }
+
+    .modal-body {
+      padding: 0 24px 20px 24px;
+    }
+
+    .modal-body p {
+      margin-bottom: 20px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+
+    .error-message {
+      color: #dc3545;
+      font-size: 14px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .modal-footer {
+      padding: 20px 24px 24px 24px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .btn-primary, .btn-secondary {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0056b3, #004085);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #6c757d;
+      border: 1px solid #dee2e6;
+    }
+
+    .btn-secondary:hover {
+      background: #e9ecef;
+      color: #495057;
+    }
+  </style>
+
+  <script>
+    // SECURE FIREBASE CONFIGURATION (injected during build from environment variables)
+    const firebaseConfig = {
+  apiKey: "{{FIREBASE_API_KEY}}",
+  authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
+  projectId: "{{FIREBASE_PROJECT_ID}}",
+  storageBucket: "{{FIREBASE_STORAGE_BUCKET}}",
+  messagingSenderId: "{{FIREBASE_MESSAGING_SENDER_ID}}",
+  appId: "{{FIREBASE_APP_ID}}"
+};
+      
+      
+      
+      
+      
+      
+    
+    
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Initialize Firebase Functions client
+    const functions = firebase.functions();
+
+    // Initialize Stripe.js with your PUBLIC key (injected securely during build)
+    // This key is safe to include in your client-side code.
+    const stripe = Stripe('{{STRIPE_PUBLISHABLE_KEY}}'); 
+
+    // Helper functions
+    function showError(message) {
+      document.getElementById('error-text').textContent = message;
+      document.getElementById('error-message').style.display = 'block';
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('test-btn').disabled = false;
+      document.getElementById('early-adopter-btn').disabled = false;
+      document.getElementById('standard-btn').disabled = false;
+      document.getElementById('test-btn').textContent = 'Error Loading';
+      document.getElementById('early-adopter-btn').textContent = 'Error Loading';
+      document.getElementById('standard-btn').textContent = 'Error Loading';
+    }
+
+    function hideError() {
+      document.getElementById('error-message').style.display = 'none';
+    }
+
+    // Main pricing logic
+    async function getPricing() {
+      try {
+        const testBtn = document.getElementById('test-btn');
+        const earlyAdopterBtn = document.getElementById('early-adopter-btn');
+        const standardBtn = document.getElementById('standard-btn');
+        const loadingDiv = document.getElementById('loading');
+
+        loadingDiv.style.display = 'block';
+        testBtn.disabled = true;
+        earlyAdopterBtn.disabled = true;
+        standardBtn.disabled = true;
+
+        // Call your getPricing Cloud Function using HTTP
+        const response = await fetch('{{FIREBASE_FUNCTIONS_URL}}/getPricingHttp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        const pricing = await response.json();
+
+        loadingDiv.style.display = 'none';
+
+        // Update the remaining count
+        const remainingCountEl = document.getElementById('remaining-count');
+        if (pricing.earlyAdopter && typeof pricing.earlyAdopter.remaining !== 'undefined') {
+          remainingCountEl.textContent = pricing.earlyAdopter.remaining.toLocaleString();
+        } else {
+          remainingCountEl.textContent = '10000';
+        }
+
+        if (pricing.test && pricing.test.available) {
+          testBtn.textContent = 'Get Test License';
+          testBtn.disabled = false;
+          testBtn.onclick = () => purchaseLicense('test');
+        } else {
+          testBtn.textContent = 'Not Available';
+          testBtn.disabled = true;
+        }
+
+        if (pricing.earlyAdopter.available) {
+          earlyAdopterBtn.textContent = 'Get Early Adopter License';
+          earlyAdopterBtn.disabled = false;
+          earlyAdopterBtn.onclick = () => purchaseLicense('early_adopter');
+        } else {
+          earlyAdopterBtn.textContent = 'Sold Out';
+          earlyAdopterBtn.disabled = true;
+        }
+
+        if (pricing.standard.available) {
+          standardBtn.textContent = 'Get Standard License';
+          standardBtn.disabled = false;
+          standardBtn.onclick = () => purchaseLicense('standard');
+        } else {
+          standardBtn.textContent = 'Not Available';
+          standardBtn.disabled = true;
+        }
+        
+      } catch (error) {
+        console.error("Error calling getPricing function:", error); // Log actual error
+        showError('Failed to load pricing. Please refresh the page.');
+      }
+    }
+
+    // Global variable to store the selected tier
+    let selectedTier = null;
+
+    // Modal control functions
+    function showEmailModal(tier) {
+      selectedTier = tier;
+      document.getElementById('email-modal').style.display = 'block';
+      document.getElementById('email-input').focus();
+      // Clear any previous errors
+      document.getElementById('email-error').style.display = 'none';
+      document.getElementById('email-input').value = '';
+    }
+
+    function closeEmailModal() {
+      document.getElementById('email-modal').style.display = 'none';
+      selectedTier = null;
+    }
+
+    function validateEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+
+    function showEmailError(message) {
+      const errorDiv = document.getElementById('email-error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
+
+    function proceedWithEmail() {
+      const email = document.getElementById('email-input').value.trim();
+      
+      if (!email) {
+        showEmailError('Please enter your email address');
+        return;
+      }
+      
+      if (!validateEmail(email)) {
+        showEmailError('Please enter a valid email address');
+        return;
+      }
+
+      // Close modal and proceed with purchase
+      closeEmailModal();
+      processPurchaseWithFallback(selectedTier, email);
+    }
+
+    // Handle Enter key in email input
+    document.addEventListener('DOMContentLoaded', function() {
+      const emailInput = document.getElementById('email-input');
+      if (emailInput) {
+        emailInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            proceedWithEmail();
+          }
+        });
+      }
+    });
+
+    // Updated purchase function - now shows modal instead of prompt
+    async function purchaseLicense(tier) {
+      showEmailModal(tier);
+    }
+
+    // Separate function to handle the actual purchase process
+    async function processPurchase(tier, email) {
+
+      try {
+        document.getElementById('loading').style.display = 'block';
+        
+        // Use direct HTTP call instead of Firebase callable
+        const response = await fetch('{{FIREBASE_FUNCTIONS_URL}}/createCheckout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            tier: tier
+          })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create checkout session');
+        }
+
+        // Redirect to Stripe checkout
+        if (result.url) {
+          window.location.href = result.url;
+        } else {
+          throw new Error('No checkout URL returned');
+        }
+        
+      } catch (error) {
+        console.error('Error calling createCheckout function:', error);
+        document.getElementById('loading').style.display = 'none';
+        showError(error.message || 'Failed to create checkout session. Please try again.');
+      }
+    }
+
+    // Fallback System Integration
+    let checkoutAttempts = 0;
+    
+    // Enhanced purchaseLicense function with fallback
+    async function purchaseLicenseWithFallback(tier) {
+      showEmailModal(tier);
+    }
+
+    // Updated processPurchase to handle fallback logic
+    async function processPurchaseWithFallback(tier, email) {
+      checkoutAttempts++;
+
+      try {
+        document.getElementById('loading').style.display = 'block';
+        
+        // Try the normal Stripe checkout first
+        const response = await fetch('{{FIREBASE_FUNCTIONS_URL}}/createCheckout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, tier: tier })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create checkout session');
+        }
+
+        // Normal checkout success
+        if (result.url) {
+          window.location.href = result.url;
+        } else {
+          throw new Error('No checkout URL returned');
+        }
+        
+      } catch (error) {
+        console.error('Stripe checkout failed:', error);
+        document.getElementById('loading').style.display = 'none';
+        
+        // After 2 failed attempts or specific errors, show fallback
+        const errorMessage = error.message.toLowerCase();
+        const isHighTrafficError = errorMessage.includes('timeout') || 
+               errorMessage.includes('rate limit') || 
+               errorMessage.includes('overload') ||
+               errorMessage.includes('503') ||
+               errorMessage.includes('502');
+               
+        if (checkoutAttempts >= 2 || isHighTrafficError) {
+          showFallbackPayment(tier, email);
+        } else {
+          showError(error.message || 'Failed to create checkout session. Please try again.');
+        }
+      }
+    }
+    
+    function showFallbackPayment(tier, email) {
+      const paymentLinks = {
+        test: 'https://buy.stripe.com/5kQ5kD9UQ5Du8xo4P34Ja07',
+        early_adopter: 'https://buy.stripe.com/bJe14naYU1ne00S95j4Ja06',
+        standard: 'https://buy.stripe.com/3cI28rc2Yc1S14W5T74Ja08'
+      };
+      
+      const fallbackModal = `
+        <div id="fallback-modal" style="
+          position: fixed; 
+          top: 0; left: 0; right: 0; bottom: 0; 
+          background: rgba(0,0,0,0.9); 
+          z-index: 9999; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center;
+        ">
+          <div style="
+            background: #1a1a2e; 
+            border: 2px solid #00f5ff; 
+            border-radius: 16px; 
+            padding: 2rem; 
+            max-width: 500px; 
+            text-align: center;
+          ">
+            <h2 style="color: #ff0080; margin-bottom: 1rem;">🔥 High Traffic Detected!</h2>
+            <p style="color: #ccc; margin-bottom: 2rem;">
+              Due to overwhelming demand, we're using our backup payment system. 
+              Your purchase will be processed manually within 1 hour.
+            </p>
+            
+            <div style="margin-bottom: 2rem;">
+              <strong style="color: #00f5ff;">Your Details:</strong><br>
+              Email: ${email}<br>
+              Tier: ${tier.replace('_', ' ').toUpperCase()}
+            </div>
+            
+            <button onclick="proceedWithPaymentLink('${tier}')" style="
+              background: linear-gradient(135deg, #00f5ff, #ff0080);
+              border: none;
+              padding: 1rem 2rem;
+              border-radius: 8px;
+              color: #fff;
+              font-size: 1.1rem;
+              font-weight: 600;
+              cursor: pointer;
+              margin-right: 1rem;
+            ">
+              🚀 Proceed with Backup Payment
+            </button>
+            
+            <button onclick="closeFallbackModal()" style="
+              background: #333;
+              border: 1px solid #555;
+              padding: 1rem 2rem;
+              border-radius: 8px;
+              color: #fff;
+              cursor: pointer;
+            ">
+              Cancel
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', fallbackModal);
+      
+      window.proceedWithPaymentLink = function(tier) {
+        localStorage.setItem('fallbackPurchase', JSON.stringify({
+          tier: tier,
+          timestamp: Date.now()
+        }));
+        window.location.href = paymentLinks[tier];
+      };
+      
+      window.closeFallbackModal = function() {
+        const modal = document.getElementById('fallback-modal');
+        if (modal) modal.remove();
+      };
+    }
+
+    // Override the original purchaseLicense function
+    window.purchaseLicense = purchaseLicenseWithFallback;
+
+    // Initial load
+    getPricing();
+
+    // FAQ Toggle
+    document.querySelectorAll('.faq-question').forEach(button => {
+      button.addEventListener('click', () => {
+        const answer = button.nextElementSibling;
+        button.classList.toggle('active');
+        answer.classList.toggle('active');
+      });
+    });
+  </script>
+</body>
+</html>
